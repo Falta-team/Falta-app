@@ -1,0 +1,11 @@
+name: falta_feature
+description: A Very Good feature template for falta_app (data/domain/presentation).
+version: 0.1.0+1
+environment:
+  mason: ">=0.1.0 <0.2.0"
+
+vars:
+  feature_name:
+    type: string
+    description: "اسم الفيتشر (مثال: notifications, subscription)"
+    prompt: "What is the feature name?"
