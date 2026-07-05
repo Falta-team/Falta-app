@@ -11,7 +11,7 @@ import 'package:flutter/material.dart';
 class MainNavigation extends StatelessWidget {
   const MainNavigation({super.key});
 
-  static const Color kGreen    = Color(0xFF44AE02);
+  static const Color kGreen = Color(0xFF44AE02);
   static const Color kTextGray = Color(0xFF64748B);
 
   @override
@@ -21,41 +21,46 @@ class MainNavigation extends StatelessWidget {
         // ── الرئيسية ────────────────────────────────────────────────────────
         FaltaBottomNavigationData(
           title: 'الرئيسية',
-          screen:const HomeBodyScreen(),
-          icon: const Icon(Icons.home_outlined,
-              color: kTextGray, size: 24),
-          selectedIcon: const Icon(Icons.home_rounded,
-              color: kGreen, size: 24),
+          screen: const HomeBodyScreen(),
+          icon: const Icon(Icons.home_outlined, color: kTextGray, size: 24),
+          selectedIcon: const Icon(Icons.home_rounded, color: kGreen, size: 24),
         ),
 
         // ── الكورسات ────────────────────────────────────────────────────────
         FaltaBottomNavigationData(
           title: 'الكورسات',
           screen: const CoursesScreen(),
-          icon: const Icon(Icons.play_circle_outline,
-              color: kTextGray, size: 24),
-          selectedIcon: const Icon(Icons.play_circle_rounded,
-              color: kGreen, size: 24),
+          icon: const Icon(
+            Icons.play_circle_outline,
+            color: kTextGray,
+            size: 24,
+          ),
+          selectedIcon: const Icon(
+            Icons.play_circle_rounded,
+            color: kGreen,
+            size: 24,
+          ),
         ),
 
         // ── أسئلة الامتحانات ────────────────────────────────────────────────
         FaltaBottomNavigationData(
           title: 'أسئلة الامتحانات',
           screen: const ExamsScreen(),
-          icon: const Icon(Icons.quiz_outlined,
-              color: kTextGray, size: 24),
-          selectedIcon: const Icon(Icons.quiz_rounded,
-              color: kGreen, size: 24),
+          icon: const Icon(Icons.quiz_outlined, color: kTextGray, size: 24),
+          selectedIcon: const Icon(Icons.quiz_rounded, color: kGreen, size: 24),
         ),
 
         // ── حسابي ───────────────────────────────────────────────────────────
         FaltaBottomNavigationData(
           title: 'حسابي',
           screen: const ProfileScreen(),
-          icon: const Icon(Icons.person_outline,
-              color: kTextGray, size: 24),
-          selectedIcon: const Icon(Icons.person_rounded,
-              color: kGreen, size: 24),
+          hideAppBar: true,
+          icon: const Icon(Icons.person_outline, color: kTextGray, size: 24),
+          selectedIcon: const Icon(
+            Icons.person_rounded,
+            color: kGreen,
+            size: 24,
+          ),
         ),
       ],
 
@@ -67,8 +72,11 @@ class MainNavigation extends StatelessWidget {
         ),
         backgroundColor: kGreen,
         elevation: 4,
-        child: const Icon(Icons.smart_toy_outlined,
-            color: Colors.white, size: 28),
+        child: const Icon(
+          Icons.smart_toy_outlined,
+          color: Colors.white,
+          size: 28,
+        ),
       ),
     );
   }
@@ -78,19 +86,19 @@ class MainNavigation extends StatelessWidget {
 class HomeBodyScreen extends StatefulWidget {
   const HomeBodyScreen({super.key});
 
-  static const Color kBg         = Color(0xFFF3F9FF);
-  static const Color kGreen      = Color(0xFF44AE02);
+  static const Color kBg = Color(0xFFF3F9FF);
+  static const Color kGreen = Color(0xFF44AE02);
   static const Color kGreenLight = Color(0xFFE8F5E2);
-  static const Color kTextDark   = Color(0xFF1A202C);
-  static const Color kTextGray   = Color(0xFF64748B);
-  static const Color kBorder     = Color(0xFFE2E8F0);
-  static const Color kWhite      = Color(0xFFFFFFFF);
+  static const Color kTextDark = Color(0xFF1A202C);
+  static const Color kTextGray = Color(0xFF64748B);
+  static const Color kBorder = Color(0xFFE2E8F0);
+  static const Color kWhite = Color(0xFFFFFFFF);
 
   static const List<Map<String, dynamic>> _subjects = [
-    {'label': 'الفيزياء',     'color': Color(0xFFDCEEFD)},
-    {'label': 'الرياضيات',    'color': Color(0xFFFFF0DC)},
-    {'label': 'الكيمياء',     'color': Color(0xFFF3DCFD)},
-    {'label': 'اللغة العربية','color': Color(0xFFDCFDE8)},
+    {'label': 'الرياضيات', 'image': 'math'},
+    {'label': 'الفيزياء', 'image': 'physics'},
+    {'label': 'اللغة العربية', 'image': 'arabic'},
+    {'label': 'الكيمياء', 'image': 'chemistry'},
   ];
 
   @override
@@ -106,6 +114,7 @@ class _HomeBodyScreenState extends State<HomeBodyScreen> {
     'assets/images/image1banner.png',
     'assets/images/image1banner.png',
   ];
+  int currentIndex = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -115,38 +124,47 @@ class _HomeBodyScreenState extends State<HomeBodyScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ── Banner ──────────────────────────────────────────────────────
-        BannerImage(
-        itemLength: list.length,
-        selectedIndicatorColor: Colors.green,
-        autoPlay: true,
-        borderRadius: BorderRadius.circular(8),
-        onTap: (int index) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text("AppText.on_tap" + index.toString()),
-          ));
-        },
-        children: List.generate(
-          list.length,
-              (index) => Image.asset(
-            list[index],
-            fit: BoxFit.cover,
+          BannerImage(
+            itemLength: list.length,
+            onPageChanged: (int index) {
+              setState(() {
+                currentIndex = index;
+              });
+            },
+            selectedIndicatorColor: Colors.green,
+            autoPlay: true,
+            borderRadius: BorderRadius.circular(8),
+            onTap: (int index) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text("AppText.on_tap" + index.toString())),
+              );
+            },
+            children: List.generate(
+              list.length,
+                  (index) => Image.asset(list[index], fit: BoxFit.cover),
+            ),
           ),
-        ),
-      ),
 
           24.hs,
+
           // Dots
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(list.length, (i) => Container(
-              margin: const EdgeInsets.symmetric(horizontal: 3),
-              width: i == 1 ? 20 : 7,
-              height: 7,
-              decoration: BoxDecoration(
-                color: i == 1 ? HomeBodyScreen.kGreen : HomeBodyScreen.kBorder,
-                borderRadius: BorderRadius.circular(4),
+            children: List.generate(
+              list.length,
+                  (i) => AnimatedContainer(
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                width: i == currentIndex ? 20 : 7,
+                height: 7,
+                decoration: BoxDecoration(
+                  color: i == currentIndex
+                      ? HomeBodyScreen.kGreen
+                      : HomeBodyScreen.kBorder,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                duration: const Duration(milliseconds: 250),
               ),
-            )),
+            ),
           ),
 
           const SizedBox(height: 24),
@@ -176,8 +194,7 @@ class _HomeBodyScreenState extends State<HomeBodyScreen> {
             child: GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              gridDelegate:
-              const SliverGridDelegateWithFixedCrossAxisCount(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,
@@ -205,11 +222,10 @@ class _HomeBodyScreenState extends State<HomeBodyScreen> {
                           width: 70,
                           height: 70,
                           decoration: BoxDecoration(
-                            color: s['color'] as Color,
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: Image.asset(
-                            'assets/icons/${s['label']}.png',
+                            'assets/images/${s['image']}.png',
                             fit: BoxFit.contain,
                             errorBuilder: (_, __, ___) => const Icon(
                               Icons.menu_book_rounded,
