@@ -3,7 +3,6 @@ import 'package:falta_app/features/ai/presentation/screens/ai_screen.dart';
 import 'package:falta_app/features/courses/presentation/screens/courses_screen.dart';
 import 'package:falta_app/features/exams/presentation/screens/exams_screen.dart';
 import 'package:falta_app/features/home/presentation/screens/falta_bottom_nav.dart';
-import 'package:falta_app/features/home/presentation/screens/home_screen.dart';
 import 'package:falta_app/features/profile/presentation/screens/profile_screen.dart';
 import 'package:falta_app/utils/extensions/extensions.dart';
 import 'package:flutter/material.dart';
