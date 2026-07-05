@@ -10,11 +10,15 @@ class FaltaBottomNavigationData {
   final Widget icon;
   final Widget selectedIcon;
 
+  /// لو true بيخفي الـ AppBar لما هاد الـ tab يكون active
+  final bool hideAppBar;
+
   const FaltaBottomNavigationData({
     required this.title,
     required this.screen,
     required this.icon,
     required this.selectedIcon,
+    this.hideAppBar = false,
   });
 }
 
@@ -23,7 +27,7 @@ class FaltaBottomNavigationScreen extends StatefulWidget {
   final List<FaltaBottomNavigationData> pages;
   final int? selectedPageIndex;
   final ValueChanged<int>? onTap;
-  final Widget? fab; // الـ FAB (زر الشات)
+  final Widget? fab;
 
   const FaltaBottomNavigationScreen({
     super.key,
@@ -40,7 +44,6 @@ class FaltaBottomNavigationScreen extends StatefulWidget {
 
 class _FaltaBottomNavigationScreenState
     extends State<FaltaBottomNavigationScreen> {
-  // ── Design Tokens ───────────────────────────────────────────────────────────
   static const Color kGreen      = Color(0xFF44AE02);
   static const Color kGreenLight = Color(0xFFE8F5E2);
   static const Color kTextDark   = Color(0xFF1A202C);
@@ -52,6 +55,10 @@ class _FaltaBottomNavigationScreenState
   String _name  = '';
   String _image = '';
 
+  // ── هل الصفحة الحالية تخفي الـ AppBar؟ ──────────────────────────────────
+  bool get _shouldHideAppBar =>
+      widget.pages[_selectedPageIndex].hideAppBar;
+
   @override
   void initState() {
     super.initState();
@@ -59,14 +66,8 @@ class _FaltaBottomNavigationScreenState
     _getProfile();
   }
 
-  // ── Fetch user profile ──────────────────────────────────────────────────────
   Future<void> _getProfile() async {
     // TODO: استبدل بـ API call حقيقي
-    // UserApiController apiController = UserApiController();
-    // UserModel user = await apiController.getUser();
-    // setState(() { _name = user.name; _image = user.image; });
-
-    // بيانات تجريبية
     await Future.delayed(const Duration(milliseconds: 500));
     if (mounted) {
       setState(() {
@@ -78,37 +79,38 @@ class _FaltaBottomNavigationScreenState
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF3F9FF),
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF3F9FF),
 
-      // ── AppBar ──────────────────────────────────────────────────────────────
-      appBar: AppBar(
-        backgroundColor: kWhite,
-        elevation: 0,
-        centerTitle: false,
-        // Avatar (يسار)
-        leading: Padding(
-          padding: const EdgeInsets.only(right: 16),
-          child: CircleAvatar(
-            backgroundColor: kGreenLight,
-            child: _image.isEmpty
-                ? const Icon(Icons.person, color: kGreen, size: 24)
-                : ClipOval(
-              child: Image.network(
-                'https://falta.app/$_image',
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) =>
-                const Icon(Icons.person, color: kGreen, size: 24),
+        // ── AppBar — مخفي لما hideAppBar = true ────────────────────────────
+        appBar: _shouldHideAppBar ? null : AppBar(
+          backgroundColor: kWhite,
+          elevation: 0,
+          centerTitle: false,
+
+          // Avatar (يسار)
+          leading: Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: CircleAvatar(
+              backgroundColor: kGreenLight,
+              child: _image.isEmpty
+                  ? const Icon(Icons.person, color: kGreen, size: 24)
+                  : ClipOval(
+                child: Image.network(
+                  'https://falta.app/$_image',
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) =>
+                  const Icon(Icons.person, color: kGreen, size: 24),
+                ),
               ),
             ),
           ),
-        ),
-        leadingWidth: 60,
+          leadingWidth: 60,
 
-        // Name + subtitle (وسط)
-        title: Directionality(
-          textDirection: TextDirection.rtl,
-          child: Column(
+          // Name + subtitle
+          title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
@@ -130,76 +132,67 @@ class _FaltaBottomNavigationScreenState
               ),
             ],
           ),
+
+          // Notification button
+          actions: [
+            Padding(
+              padding: const EdgeInsets.only(left: 16),
+              child: GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const NotificationsScreen()),
+                ),
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: kWhite,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: kBorder),
+                  ),
+                  child: const Icon(
+                    Icons.notifications_outlined,
+                    color: kTextDark,
+                    size: 22,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
 
-        // Notification button (يمين)
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(left: 16),
-            child: GestureDetector(
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (_) => const NotificationsScreen()),
-              ),
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: kWhite,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: kBorder),
-                ),
-                child: const Icon(
-                  Icons.notifications_outlined,
-                  color: kTextDark,
-                  size: 22,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
+        // ── Body ───────────────────────────────────────────────────────────
+        body: IndexedStack(
+          index: _selectedPageIndex,
+          children: widget.pages.map((p) => p.screen).toList(),
+        ),
 
-      // ── Body: IndexedStack يحافظ على state كل tab ─────────────────────────
-      body: IndexedStack(
-        index: _selectedPageIndex,
-        children: widget.pages.map((p) => p.screen).toList(),
-      ),
+        // ── FAB ────────────────────────────────────────────────────────────
+        floatingActionButton: widget.fab,
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
 
-      // ── FAB (زر الشات) ─────────────────────────────────────────────────────
-      floatingActionButton: widget.fab,
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-
-      // ── Bottom Nav ──────────────────────────────────────────────────────────
-      bottomNavigationBar: BottomAppBar(
-        color: kWhite,
-        elevation: 8,
-        notchMargin: 8,
-        shape: widget.fab != null
-            ? const CircularNotchedRectangle()
-            : null,
-        child: Directionality(
-          textDirection: TextDirection.rtl,
+        // ── Bottom Nav ──────────────────────────────────────────────────────
+        bottomNavigationBar: BottomAppBar(
+          color: kWhite,
+          elevation: 8,
+          notchMargin: 8,
+          shape: widget.fab != null ? const CircularNotchedRectangle() : null,
           child: SizedBox(
             height: 60,
-            child: Row(
-              children: _buildNavItems(),
-            ),
+            child: Row(children: _buildNavItems()),
           ),
         ),
       ),
     );
   }
 
-  // ── Build nav items مع فراغ للـ FAB في المنتصف ────────────────────────────
   List<Widget> _buildNavItems() {
     final List<Widget> items = [];
-    final int total = widget.pages.length;
-    final int midIndex = total ~/ 2; // المنتصف للـ FAB
+    final int total    = widget.pages.length;
+    final int midIndex = total ~/ 2;
 
     for (int i = 0; i < total; i++) {
-      // فراغ للـ FAB في المنتصف
       if (i == midIndex && widget.fab != null) {
         items.add(const SizedBox(width: 72));
       }
@@ -225,9 +218,8 @@ class _FaltaBottomNavigationScreenState
                   style: TextStyle(
                     fontSize: 10,
                     fontFamily: 'Cairo',
-                    fontWeight: isActive
-                        ? FontWeight.w700
-                        : FontWeight.w400,
+                    fontWeight:
+                    isActive ? FontWeight.w700 : FontWeight.w400,
                     color: isActive ? kGreen : kTextGray,
                   ),
                 ),
@@ -237,7 +229,6 @@ class _FaltaBottomNavigationScreenState
         ),
       );
     }
-
     return items;
   }
 }
