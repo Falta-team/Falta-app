@@ -72,6 +72,7 @@ class MainNavigation extends StatelessWidget {
         backgroundColor: kGreen,
         elevation: 4,
         child: const Icon(
+          
           Icons.smart_toy_outlined,
           color: Colors.white,
           size: 28,
