@@ -1,4 +1,9 @@
+import 'package:falta_app/core/theme/app_colors.dart';
+import 'package:falta_app/features/ai/presentation/widgets/typing_indecator_widget.dart';
+import 'package:falta_app/utils/extensions/extensions.dart';
+import 'package:falta_app/utils/extensions/strings.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class FaltaChatAIScreen extends StatefulWidget {
   const FaltaChatAIScreen({super.key});
@@ -8,13 +13,6 @@ class FaltaChatAIScreen extends StatefulWidget {
 }
 
 class _FaltaChatScreenState extends State<FaltaChatAIScreen> {
-  // ── Design Tokens ─────────────────────────────────────────────────────────
-  static const Color kBg       = Color(0xFFFFFFFF);
-  static const Color kGreen    = Color(0xFF44AE02);
-  static const Color kTextDark = Color(0xFF1A202C);
-  static const Color kTextGray = Color(0xFF64748B);
-  static const Color kBorder   = Color(0xFFE2E8F0);
-  static const Color kInputBg  = Color(0xFFF3F9FF);
 
   final _msgController = TextEditingController();
   final _scrollCtrl    = ScrollController();
@@ -82,7 +80,6 @@ class _FaltaChatScreenState extends State<FaltaChatAIScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kBg,
       body: SafeArea(
         child: Column(
           children: [
@@ -93,26 +90,25 @@ class _FaltaChatScreenState extends State<FaltaChatAIScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   // FaltaChat title in green
-                  const Text(
+                   Text(
                     'FaltaChat',
-                    style: TextStyle(
+                    style: GoogleFonts.inter(
                       fontSize: 22,
                       fontWeight: FontWeight.w800,
-                      color: kGreen,
-                      fontFamily: 'Cairo',
+                      color: AppColors.primary,
                       letterSpacing: 0.5,
                     ),
                   ),
                   GestureDetector(
                     onTap: () => Navigator.pop(context),
                     child: const Icon(Icons.arrow_forward,
-                        color: kTextDark, size: 26),
+                        color: AppColors.textDark, size: 26),
                   ),
                 ],
               ),
             ),
 
-            const Divider(color: kBorder, height: 1),
+            const Divider(color: AppColors.kBorder, height: 1),
 
             // ── Messages ───────────────────────────────────────────────────
             Expanded(
@@ -129,8 +125,8 @@ class _FaltaChatScreenState extends State<FaltaChatAIScreen> {
             // ── Input Bar ──────────────────────────────────────────────────
             Container(
               decoration: const BoxDecoration(
-                color: kBg,
-                border: Border(top: BorderSide(color: kBorder)),
+                color: AppColors.white,
+                border: Border(top: BorderSide(color: AppColors.kBorder)),
               ),
               padding: const EdgeInsets.symmetric(
                   horizontal: 16, vertical: 10),
@@ -140,9 +136,9 @@ class _FaltaChatScreenState extends State<FaltaChatAIScreen> {
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
-                        color: kInputBg,
+                        color: AppColors.bgLight,
                         borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: kBorder),
+                        border: Border.all(color: AppColors.kBorder),
                       ),
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 4),
@@ -151,17 +147,15 @@ class _FaltaChatScreenState extends State<FaltaChatAIScreen> {
                           Expanded(
                             child: TextField(
                               controller: _msgController,
-                              style: const TextStyle(
+                              style:  GoogleFonts.inter(
                                 fontSize: 14,
-                                color: kTextDark,
-                                fontFamily: 'Cairo',
+                                color: AppColors.textDark,
                               ),
-                              decoration: const InputDecoration(
+                              decoration:  InputDecoration(
                                 hintText: 'Write your message',
-                                hintStyle: TextStyle(
-                                  color: kTextGray,
+                                hintStyle: GoogleFonts.inter(
+                                  color: AppColors.textSecondary,
                                   fontSize: 14,
-                                  fontFamily: 'Cairo',
                                 ),
                                 border: InputBorder.none,
                                 isDense: true,
@@ -171,13 +165,13 @@ class _FaltaChatScreenState extends State<FaltaChatAIScreen> {
                           ),
                           // Mic icon
                           const Icon(Icons.mic_none,
-                              color: kTextGray, size: 20),
+                              color: AppColors.textSecondary, size: 20),
                         ],
                       ),
                     ),
                   ),
 
-                  const SizedBox(width: 10),
+                  10.ws,
 
                   // Send Button
                   GestureDetector(
@@ -186,7 +180,7 @@ class _FaltaChatScreenState extends State<FaltaChatAIScreen> {
                       width: 42,
                       height: 42,
                       decoration: BoxDecoration(
-                        color: kGreen,
+                        color: AppColors.primary,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(
@@ -215,20 +209,18 @@ class _FaltaChatScreenState extends State<FaltaChatAIScreen> {
           padding: const EdgeInsets.symmetric(
               horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: kGreen,
+            color: AppColors.primary,
             borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(18),
-              topRight: Radius.circular(18),
-              bottomLeft: Radius.circular(18),
-              bottomRight: Radius.circular(4),
+              topLeft: Radius.circular(25),
+              bottomLeft: Radius.circular(25),
+              bottomRight: Radius.circular(25),
             ),
           ),
           child: Text(
             msg.text,
-            style: const TextStyle(
+            style:  GoogleFonts.inter(
               color: Colors.white,
               fontSize: 14,
-              fontFamily: 'Cairo',
               height: 1.5,
             ),
           ),
@@ -242,20 +234,16 @@ class _FaltaChatScreenState extends State<FaltaChatAIScreen> {
       children: [
         // AI Avatar
         Container(
-          width: 32,
-          height: 32,
+          width: 26,
+          height: 26,
           margin: const EdgeInsets.only(bottom: 12, left: 6),
           decoration: BoxDecoration(
-            color: kGreen.withOpacity(0.1),
+            color: AppColors.primary.withOpacity(0.1),
             shape: BoxShape.circle,
           ),
-          child: Center(
-            child: Text(
-              '🤖',
-              style: const TextStyle(fontSize: 16),
-            ),
-          ),
+          child: Image.asset('icon_logo_chat.png'.icon_,fit: BoxFit.fill,),
         ),
+        4.ws,
 
         Flexible(
           child: Container(
@@ -265,21 +253,19 @@ class _FaltaChatScreenState extends State<FaltaChatAIScreen> {
             decoration: BoxDecoration(
               color: const Color(0xFFF3F9FF),
               borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(18),
-                topRight: Radius.circular(18),
-                bottomLeft: Radius.circular(4),
-                bottomRight: Radius.circular(18),
+                topLeft: Radius.circular(25),
+                topRight: Radius.circular(25),
+                bottomRight: Radius.circular(25),
               ),
-              border: Border.all(color: kBorder),
+              border: Border.all(color: AppColors.kBorder),
             ),
             child: msg.isTyping
-                ? _TypingIndicator()
+                ? TypingIndicator()
                 : Text(
               msg.text,
-              style: const TextStyle(
-                color: kTextDark,
+              style: GoogleFonts.inter(
+                color: AppColors.textDark,
                 fontSize: 14,
-                fontFamily: 'Cairo',
                 height: 1.5,
               ),
             ),
@@ -302,54 +288,3 @@ class _ChatMessage {
   });
 }
 
-// ── Animated typing dots ──────────────────────────────────────────────────────
-class _TypingIndicator extends StatefulWidget {
-  @override
-  State<_TypingIndicator> createState() => _TypingIndicatorState();
-}
-
-class _TypingIndicatorState extends State<_TypingIndicator>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _ctrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _ctrl,
-      builder: (_, __) {
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: List.generate(3, (i) {
-            final opacity = (((_ctrl.value * 3) - i) % 3 < 1)
-                ? 1.0
-                : 0.3;
-            return Container(
-              margin: const EdgeInsets.symmetric(horizontal: 2),
-              width: 7,
-              height: 7,
-              decoration: BoxDecoration(
-                color: const Color(0xFF44AE02).withOpacity(opacity),
-                shape: BoxShape.circle,
-              ),
-            );
-          }),
-        );
-      },
-    );
-  }
-}
