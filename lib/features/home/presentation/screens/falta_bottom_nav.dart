@@ -88,7 +88,7 @@ class _FaltaBottomNavigationScreenState
                 backgroundColor: AppColors.white,
                 elevation: 0,
                 centerTitle: false,
-
+                toolbarHeight: 72,
                 // Avatar (يسار)
                 leading: Padding(
                   padding: const EdgeInsets.only(right: 16),

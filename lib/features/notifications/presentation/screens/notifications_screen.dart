@@ -64,67 +64,70 @@ class NotificationsScreen extends StatelessWidget {
                   const Divider(color: kBorder, height: 1, indent: 20, endIndent: 20),
                   itemBuilder: (context, i) {
                     final n = _notifications[i];
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 14),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Icon
-                          Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: kGreen,
-                              borderRadius: BorderRadius.circular(12),
+                    return Container(
+                      height: 96,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 14),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Icon
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: kGreen,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.notifications_outlined,
+                                color: kWhite,
+                                size: 22,
+                              ),
                             ),
-                            child: const Icon(
-                              Icons.notifications_outlined,
-                              color: kWhite,
-                              size: 22,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
+                            const SizedBox(width: 12),
 
-                          // Content
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  n['title']!,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700,
-                                    color: kTextDark,
-                                    fontFamily: 'Cairo',
+                            // Content
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    n['title']!,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                      color: kTextDark,
+                                      fontFamily: 'Cairo',
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 3),
-                                Text(
-                                  n['body']!,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: kTextGray,
-                                    fontFamily: 'Cairo',
-                                    height: 1.4,
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    n['body']!,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: kTextGray,
+                                      fontFamily: 'Cairo',
+                                      height: 1.4,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 8),
+                            const SizedBox(width: 8),
 
-                          // Time
-                          Text(
-                            n['time']!,
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: kTextGray,
-                              fontFamily: 'Cairo',
+                            // Time
+                            Text(
+                              n['time']!,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: kTextGray,
+                                fontFamily: 'Cairo',
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     );
                   },

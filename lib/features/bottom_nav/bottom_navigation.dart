@@ -41,6 +41,7 @@ class MainNavigation extends StatelessWidget {
         FaltaBottomNavigationData(
           title: 'الكورسات',
           screen: const CoursesScreen(),
+          hideAppBar: true,
           icon: Image.asset(
             'icon_courses.png'.icon_,
             color: AppColors.gray,
@@ -59,6 +60,7 @@ class MainNavigation extends StatelessWidget {
         FaltaBottomNavigationData(
           title: 'أسئلة الامتحانات',
           screen: const ExamsScreen(),
+
           icon: Image.asset(
             'icon_exams.png'.icon_,
             color: AppColors.gray,
@@ -223,8 +225,8 @@ class _HomeBodyScreenState extends State<HomeBodyScreen> {
 
                   onTap: () => Navigator.pushNamed(
                     context,
-                    '/course-detail',
-                    arguments: s['label'],
+                    '/instructors',
+                    arguments: s,
                   ),
                   child: Container(
                     width: 164,
