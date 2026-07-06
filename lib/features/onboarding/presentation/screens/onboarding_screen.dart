@@ -1,3 +1,4 @@
+import 'package:falta_app/core/theme/app_colors.dart';
 import 'package:falta_app/core/theme/app_theme.dart';
 import 'package:falta_app/features/auth/presentation/screens/login_screen.dart';
 import 'package:falta_app/features/onboarding/data/models/onboarding_page_data.dart';
