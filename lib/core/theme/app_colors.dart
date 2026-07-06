@@ -8,6 +8,13 @@ class AppColors {
   static const accent = Color(0xFF06B6D4);
   static const backgroundAppColor = Color(0xFFF3F9FF);
   static const white = Color(0xFFFFFFFF);
+  static const gray = Color(0xFFBFBFBF);
+  static const kBorder = Color(0x8F979797);
+  static const primaryLight = Color(0xFF60A5FA);
+  static const background = Color(0xFFF7F8FC);
+  static const textPrimary = Color(0xFF1A1A1A);
+  static const textSecondary = Color(0xFF888888);
+  static const border = Color(0xFFE5E7EB);
 
   // Status
   static const success = Color(0xFF22C55E);

@@ -1,7 +1,11 @@
+import 'package:falta_app/core/theme/app_colors.dart';
 import 'package:falta_app/features/notifications/presentation/screens/notifications_screen.dart';
+import 'package:falta_app/utils/extensions/extensions.dart';
+import 'package:falta_app/utils/extensions/strings.dart';
 import 'package:flutter/material.dart';
-// import 'package:falta/api/controllers/user_api_controller.dart';
-// import 'package:falta/model/auth/user_model.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+
 
 // ── Data model لكل tab ────────────────────────────────────────────────────────
 class FaltaBottomNavigationData {
@@ -44,20 +48,13 @@ class FaltaBottomNavigationScreen extends StatefulWidget {
 
 class _FaltaBottomNavigationScreenState
     extends State<FaltaBottomNavigationScreen> {
-  static const Color kGreen      = Color(0xFF44AE02);
-  static const Color kGreenLight = Color(0xFFE8F5E2);
-  static const Color kTextDark   = Color(0xFF1A202C);
-  static const Color kTextGray   = Color(0xFF64748B);
-  static const Color kBorder     = Color(0xFFE2E8F0);
-  static const Color kWhite      = Color(0xFFFFFFFF);
 
   late int _selectedPageIndex;
-  String _name  = '';
+  String _name = '';
   String _image = '';
 
   // ── هل الصفحة الحالية تخفي الـ AppBar؟ ──────────────────────────────────
-  bool get _shouldHideAppBar =>
-      widget.pages[_selectedPageIndex].hideAppBar;
+  bool get _shouldHideAppBar => widget.pages[_selectedPageIndex].hideAppBar;
 
   @override
   void initState() {
@@ -71,7 +68,7 @@ class _FaltaBottomNavigationScreenState
     await Future.delayed(const Duration(milliseconds: 500));
     if (mounted) {
       setState(() {
-        _name  = 'دينا أسعد';
+        _name = 'دينا أسعد';
         _image = '';
       });
     }
@@ -85,82 +82,79 @@ class _FaltaBottomNavigationScreenState
         backgroundColor: const Color(0xFFF3F9FF),
 
         // ── AppBar — مخفي لما hideAppBar = true ────────────────────────────
-        appBar: _shouldHideAppBar ? null : AppBar(
-          backgroundColor: kWhite,
-          elevation: 0,
-          centerTitle: false,
+        appBar: _shouldHideAppBar
+            ? null
+            : AppBar(
+                backgroundColor: AppColors.white,
+                elevation: 0,
+                centerTitle: false,
 
-          // Avatar (يسار)
-          leading: Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: CircleAvatar(
-              backgroundColor: kGreenLight,
-              child: _image.isEmpty
-                  ? const Icon(Icons.person, color: kGreen, size: 24)
-                  : ClipOval(
-                child: Image.network(
-                  'https://falta.app/$_image',
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) =>
-                  const Icon(Icons.person, color: kGreen, size: 24),
-                ),
-              ),
-            ),
-          ),
-          leadingWidth: 60,
-
-          // Name + subtitle
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                _name.isEmpty ? 'مرحباً' : 'مرحبا $_name',
-                style: const TextStyle(
-                  color: kTextDark,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                  fontFamily: 'Cairo',
-                ),
-              ),
-              const Text(
-                'اهلا بعودتك مرة ثانيه',
-                style: TextStyle(
-                  color: kTextGray,
-                  fontSize: 12,
-                  fontFamily: 'Cairo',
-                ),
-              ),
-            ],
-          ),
-
-          // Notification button
-          actions: [
-            Padding(
-              padding: const EdgeInsets.only(left: 16),
-              child: GestureDetector(
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => const NotificationsScreen()),
-                ),
-                child: Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: kWhite,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: kBorder),
-                  ),
-                  child: const Icon(
-                    Icons.notifications_outlined,
-                    color: kTextDark,
-                    size: 22,
+                // Avatar (يسار)
+                leading: Padding(
+                  padding: const EdgeInsets.only(right: 16),
+                  child: CircleAvatar(
+                    backgroundColor: AppColors.bgLight,
+                    child: _image.isEmpty
+                        ? const Icon(Icons.person, color: AppColors.primary, size: 24)
+                        : ClipOval(
+                            child: Image.network(
+                              'https://falta.app/$_image',
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const Icon(
+                                Icons.person,
+                                color: AppColors.primary,
+                                size: 24,
+                              ),
+                            ),
+                          ),
                   ),
                 ),
+                leadingWidth: 60,
+
+                // Name + subtitle
+                title: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _name.isEmpty ? 'مرحباً' : 'مرحبا $_name',
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Text(
+                      'اهلا بعودتك مرة ثانيه',
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textSecondaryDark,
+                      ),
+                    ),
+                  ],
+                ),
+
+                // Notification button
+                actions: [
+                  Padding(
+                    padding: const EdgeInsets.only(left: 16),
+                    child: GestureDetector(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const NotificationsScreen(),
+                        ),
+                      ),
+                      child: Container(
+                        width: 24,
+                        height: 24,
+                        child:  Image.asset(
+                          'icon_notification.png'.icon_,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
 
         // ── Body ───────────────────────────────────────────────────────────
         body: IndexedStack(
@@ -174,14 +168,11 @@ class _FaltaBottomNavigationScreenState
 
         // ── Bottom Nav ──────────────────────────────────────────────────────
         bottomNavigationBar: BottomAppBar(
-          color: kWhite,
+          color: AppColors.white,
           elevation: 8,
           notchMargin: 8,
           shape: widget.fab != null ? const CircularNotchedRectangle() : null,
-          child: SizedBox(
-            height: 60,
-            child: Row(children: _buildNavItems()),
-          ),
+          child: SizedBox(height: 60, child: Row(children: _buildNavItems())),
         ),
       ),
     );
@@ -189,12 +180,12 @@ class _FaltaBottomNavigationScreenState
 
   List<Widget> _buildNavItems() {
     final List<Widget> items = [];
-    final int total    = widget.pages.length;
+    final int total = widget.pages.length;
     final int midIndex = total ~/ 2;
 
     for (int i = 0; i < total; i++) {
       if (i == midIndex && widget.fab != null) {
-        items.add(const SizedBox(width: 72));
+        items.add(72.ws);
       }
 
       final isActive = _selectedPageIndex == i;
@@ -209,18 +200,15 @@ class _FaltaBottomNavigationScreenState
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                isActive
-                    ? widget.pages[i].selectedIcon
-                    : widget.pages[i].icon,
-                const SizedBox(height: 2),
+                isActive ? widget.pages[i].selectedIcon : widget.pages[i].icon,
+                2.hs,
                 Text(
                   widget.pages[i].title,
                   style: TextStyle(
                     fontSize: 10,
                     fontFamily: 'Cairo',
-                    fontWeight:
-                    isActive ? FontWeight.w700 : FontWeight.w400,
-                    color: isActive ? kGreen : kTextGray,
+                    fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
+                    color: isActive ? AppColors.primary : AppColors.textSecondaryDark,
                   ),
                 ),
               ],

@@ -1,15 +1,9 @@
+import 'package:falta_app/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 /// ألوان التطبيق الأساسية - مطابقة لتصميم فلتة في Figma
-class AppColors {
-  static const Color primary = Color(0xFf44AE02);
-  static const Color primaryLight = Color(0xFF60A5FA);
-  static const Color background = Color(0xFFF7F8FC);
-  static const Color textPrimary = Color(0xFF1A1A1A);
-  static const Color textSecondary = Color(0xFF888888);
-  static const Color border = Color(0xFFE5E7EB);
-}
+
 
 /// أنماط النصوص بخط Cairo
 class AppTextStyles {

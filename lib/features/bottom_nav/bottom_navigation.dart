@@ -1,17 +1,19 @@
 import 'package:banner_image/banner_image.dart';
+import 'package:falta_app/core/theme/app_colors.dart';
 import 'package:falta_app/features/ai/presentation/screens/ai_screen.dart';
 import 'package:falta_app/features/courses/presentation/screens/courses_screen.dart';
 import 'package:falta_app/features/exams/presentation/screens/exams_screen.dart';
 import 'package:falta_app/features/home/presentation/screens/falta_bottom_nav.dart';
 import 'package:falta_app/features/profile/presentation/screens/profile_screen.dart';
 import 'package:falta_app/utils/extensions/extensions.dart';
+import 'package:falta_app/utils/extensions/strings.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class MainNavigation extends StatelessWidget {
   const MainNavigation({super.key});
 
-  static const Color kGreen = Color(0xFF44AE02);
-  static const Color kTextGray = Color(0xFF64748B);
+
 
   @override
   Widget build(BuildContext context) {
@@ -21,23 +23,35 @@ class MainNavigation extends StatelessWidget {
         FaltaBottomNavigationData(
           title: 'الرئيسية',
           screen: const HomeBodyScreen(),
-          icon: const Icon(Icons.home_outlined, color: kTextGray, size: 24),
-          selectedIcon: const Icon(Icons.home_rounded, color: kGreen, size: 24),
+          icon: Image.asset(
+            'icon_home.png'.icon_,
+            color: AppColors.gray,
+            height: 24,
+            width: 24,
+          ),
+          selectedIcon: Image.asset(
+            'icon_home.png'.icon_,
+            color: AppColors.primary,
+            height: 24,
+            width: 24,
+          ),
         ),
 
         // ── الكورسات ────────────────────────────────────────────────────────
         FaltaBottomNavigationData(
           title: 'الكورسات',
           screen: const CoursesScreen(),
-          icon: const Icon(
-            Icons.play_circle_outline,
-            color: kTextGray,
-            size: 24,
+          icon: Image.asset(
+            'icon_courses.png'.icon_,
+            color: AppColors.gray,
+            height: 24,
+            width: 24,
           ),
-          selectedIcon: const Icon(
-            Icons.play_circle_rounded,
-            color: kGreen,
-            size: 24,
+          selectedIcon: Image.asset(
+            'icon_courses.png'.icon_,
+            color: AppColors.primary,
+            height: 24,
+            width: 24,
           ),
         ),
 
@@ -45,8 +59,18 @@ class MainNavigation extends StatelessWidget {
         FaltaBottomNavigationData(
           title: 'أسئلة الامتحانات',
           screen: const ExamsScreen(),
-          icon: const Icon(Icons.quiz_outlined, color: kTextGray, size: 24),
-          selectedIcon: const Icon(Icons.quiz_rounded, color: kGreen, size: 24),
+          icon: Image.asset(
+            'icon_exams.png'.icon_,
+            color: AppColors.gray,
+            height: 24,
+            width: 24,
+          ),
+          selectedIcon: Image.asset(
+            'icon_exams.png'.icon_,
+            color: AppColors.primary,
+            height: 24,
+            width: 24,
+          ),
         ),
 
         // ── حسابي ───────────────────────────────────────────────────────────
@@ -54,45 +78,48 @@ class MainNavigation extends StatelessWidget {
           title: 'حسابي',
           screen: const ProfileScreen(),
           hideAppBar: true,
-          icon: const Icon(Icons.person_outline, color: kTextGray, size: 24),
-          selectedIcon: const Icon(
-            Icons.person_rounded,
-            color: kGreen,
-            size: 24,
+          icon: Image.asset(
+            'icon_profile.png'.icon_,
+            color: AppColors.gray,
+            height: 24,
+            width: 24,
+          ),
+          selectedIcon: Image.asset(
+            'icon_profile.png'.icon_,
+            color: AppColors.primary,
+            height: 24,
+            width: 24,
           ),
         ),
       ],
 
       // ── FAB → FaltaChat ─────────────────────────────────────────────────
-      fab: FloatingActionButton(
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const FaltaChatAIScreen()),
-        ),
-        backgroundColor: kGreen,
-        elevation: 4,
-        child: const Icon(
-          
-          Icons.smart_toy_outlined,
-          color: Colors.white,
-          size: 28,
+      fab: Container(
+        height: 60,
+        width: 60,
+
+        child: FloatingActionButton(
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const FaltaChatAIScreen()),
+          ),
+          backgroundColor: AppColors.primary,
+          elevation: 4,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadiusGeometry.circular(30),
+            side: BorderSide(color: AppColors.white, width: 0.8),
+          ),
+          child: Image.asset('img_logo_btn.png'.image_),
         ),
       ),
     );
   }
 }
 
-// ── Home Body (بدون AppBar لأن AppBar موجود بالـ wrapper) ─────────────────────
+// ── Home Body  ─────────────────────
 class HomeBodyScreen extends StatefulWidget {
   const HomeBodyScreen({super.key});
 
-  static const Color kBg = Color(0xFFF3F9FF);
-  static const Color kGreen = Color(0xFF44AE02);
-  static const Color kGreenLight = Color(0xFFE8F5E2);
-  static const Color kTextDark = Color(0xFF1A202C);
-  static const Color kTextGray = Color(0xFF64748B);
-  static const Color kBorder = Color(0xFFE2E8F0);
-  static const Color kWhite = Color(0xFFFFFFFF);
 
   static const List<Map<String, dynamic>> _subjects = [
     {'label': 'الرياضيات', 'image': 'math'},
@@ -107,12 +134,12 @@ class HomeBodyScreen extends StatefulWidget {
 
 class _HomeBodyScreenState extends State<HomeBodyScreen> {
   final list = <String>[
-    'assets/images/image1banner.png',
-    'assets/images/image1banner.png',
-    'assets/images/image1banner.png',
-    'assets/images/image1banner.png',
-    'assets/images/image1banner.png',
-    'assets/images/image1banner.png',
+    'image1banner.png'.image_,
+    'image1banner.png'.image_,
+    'image1banner.png'.image_,
+    'image1banner.png'.image_,
+    'image1banner.png'.image_,
+    'image1banner.png'.image_,
   ];
   int currentIndex = 0;
 
@@ -123,72 +150,61 @@ class _HomeBodyScreenState extends State<HomeBodyScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Banner ──────────────────────────────────────────────────────
-          BannerImage(
-            itemLength: list.length,
-            onPageChanged: (int index) {
-              setState(() {
-                currentIndex = index;
-              });
-            },
-            selectedIndicatorColor: Colors.green,
-            autoPlay: true,
-            borderRadius: BorderRadius.circular(8),
-            onTap: (int index) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text("AppText.on_tap" + index.toString())),
-              );
-            },
-            children: List.generate(
-              list.length,
-                  (index) => Image.asset(list[index], fit: BoxFit.cover),
+          16.hs,
+          Container(
+            height: 140,
+            width: double.infinity,
+            child: BannerImage(
+              itemLength: list.length,
+              onPageChanged: (int index) {
+                setState(() {
+                  currentIndex = index;
+                });
+              },
+
+              selectedIndicatorColor: Colors.green,
+              autoPlay: true,
+              borderRadius: BorderRadius.circular(8),
+              children: List.generate(
+                list.length,
+                (index) => Image.asset(list[index], fit: BoxFit.fill),
+              ),
             ),
           ),
-
-          24.hs,
-
-          // Dots
+          12.hs,
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: List.generate(
               list.length,
-                  (i) => AnimatedContainer(
+              (i) => AnimatedContainer(
                 margin: const EdgeInsets.symmetric(horizontal: 3),
-                width: i == currentIndex ? 20 : 7,
-                height: 7,
+                width: 20,
+                height: 4,
                 decoration: BoxDecoration(
                   color: i == currentIndex
-                      ? HomeBodyScreen.kGreen
-                      : HomeBodyScreen.kBorder,
+                      ? AppColors.primary
+                      : AppColors.kBorder,
                   borderRadius: BorderRadius.circular(4),
                 ),
                 duration: const Duration(milliseconds: 250),
               ),
             ),
           ),
-
-          const SizedBox(height: 24),
-
-          // ── Section Title ────────────────────────────────────────────────
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20),
+          16.hs,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Align(
               alignment: Alignment.centerRight,
               child: Text(
                 'المواد الدراسية',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: HomeBodyScreen.kTextDark,
-                  fontFamily: 'Cairo',
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
           ),
-
-          const SizedBox(height: 14),
-
-          // ── Subjects Grid ────────────────────────────────────────────────
+          16.hs,
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: GridView.builder(
@@ -196,24 +212,27 @@ class _HomeBodyScreenState extends State<HomeBodyScreen> {
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
                 childAspectRatio: 1.05,
               ),
               itemCount: HomeBodyScreen._subjects.length,
               itemBuilder: (context, i) {
                 final s = HomeBodyScreen._subjects[i];
                 return GestureDetector(
+
                   onTap: () => Navigator.pushNamed(
                     context,
                     '/course-detail',
                     arguments: s['label'],
                   ),
                   child: Container(
+                    width: 164,
+                    height: 164,
                     decoration: BoxDecoration(
-                      color: HomeBodyScreen.kWhite,
+                      color: AppColors.white,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: HomeBodyScreen.kBorder),
+                      border: Border.all(color: AppColors.kBorder),
                     ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -229,19 +248,17 @@ class _HomeBodyScreenState extends State<HomeBodyScreen> {
                             fit: BoxFit.contain,
                             errorBuilder: (_, __, ___) => const Icon(
                               Icons.menu_book_rounded,
-                              color: HomeBodyScreen.kGreen,
+                              color: AppColors.primary,
                               size: 34,
                             ),
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        16.hs,
                         Text(
                           s['label'] as String,
-                          style: const TextStyle(
+                          style: GoogleFonts.inter(
                             fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: HomeBodyScreen.kTextDark,
-                            fontFamily: 'Cairo',
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
