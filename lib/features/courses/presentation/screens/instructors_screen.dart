@@ -1,7 +1,13 @@
 import 'package:falta_app/core/theme/app_colors.dart';
+import 'package:falta_app/features/courses/domain/bloc/courses_bloc.dart';
+import 'package:falta_app/features/courses/domain/bloc/courses_event.dart';
+import 'package:falta_app/features/courses/domain/bloc/courses_state.dart';
+import 'package:falta_app/features/courses/domain/entities/courses_entity.dart';
+import 'package:falta_app/features/courses/presentation/screens/course_detail_screen.dart';
 import 'package:falta_app/features/courses/presentation/widgets/instructor_card.dart';
 import 'package:falta_app/utils/extensions/extensions.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class InstructorsScreen extends StatefulWidget {
@@ -19,28 +25,37 @@ class _InstructorsScreenState extends State<InstructorsScreen> {
   final _searchCtrl = TextEditingController();
   String _query = '';
 
-  // ── Mock instructors ───────────────────────────────────────────────────────
-  final List<Map<String, dynamic>> _instructors = List.generate(
-    6,
-    (_) => {
-      'name': 'الأستاذ محمد اسماعيل',
-      'desc': 'بكالوريس رياضيات خبره في مجال التدريس',
-      'rating': 4,
-      'price': 15,
-      'image': 'teacher', // assets/images/teacher.png
-      'saved': false,
-    },
-  );
+  // Locally remembers which course cards the user bookmarked (the API has
+  // no "save instructor" endpoint in this feature's scope).
+  final Set<String> _savedCourseIds = {};
 
-  List<Map<String, dynamic>> get _filtered => _query.isEmpty
-      ? _instructors
-      : _instructors
-            .where(
-              (i) =>
-                  (i['name'] as String).contains(_query) ||
-                  (i['desc'] as String).contains(_query),
-            )
-            .toList();
+  String? _subjectArg;
+  bool _dispatched = false;
+
+  // ── Adapt a [CoursesEntity] to the Map shape [InstructorCard] expects ──────
+  Map<String, dynamic> _courseToInstructorMap(CoursesEntity c) {
+    return <String, dynamic>{
+      'courseId': c.id,
+      'name': c.instructorName.isEmpty ? c.title : c.instructorName,
+      'desc': c.title,
+      'rating': c.rating,
+      'price': c.price,
+      'image': c.image,
+      'saved': _savedCourseIds.contains(c.id),
+    };
+  }
+
+  List<Map<String, dynamic>> _filtered(List<CoursesEntity> courses) {
+    final mapped = courses.map(_courseToInstructorMap).toList();
+    if (_query.isEmpty) return mapped;
+    return mapped
+        .where(
+          (i) =>
+      (i['name'] as String).contains(_query) ||
+          (i['desc'] as String).contains(_query),
+    )
+        .toList();
+  }
 
   @override
   void dispose() {
@@ -52,9 +67,18 @@ class _InstructorsScreenState extends State<InstructorsScreen> {
   Widget build(BuildContext context) {
     final subject =
         widget.subject ??
-        (ModalRoute.of(context)?.settings.arguments
+            (ModalRoute.of(context)?.settings.arguments
             as Map<String, dynamic>?)?['label'] ??
-        'الكورسات';
+            'الكورسات';
+
+    // Dispatch once, as soon as we know the subject to filter by.
+    if (!_dispatched) {
+      _dispatched = true;
+      _subjectArg = subject.toString();
+      context
+          .read<CoursesBloc>()
+          .add(FetchCoursesRequested(subject: _subjectArg));
+    }
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -176,10 +200,36 @@ class _InstructorsScreenState extends State<InstructorsScreen> {
 
             12.hs,
 
-            // ── Grid ───────────────────────────────────────────────────────
+            // ── Grid (wired to CoursesBloc) ─────────────────────────────────
             Expanded(
-              child: _filtered.isEmpty
-                  ? const Center(
+              child: BlocBuilder<CoursesBloc, CoursesState>(
+                builder: (context, state) {
+                  if (state is CoursesLoading || state is CoursesInitial) {
+                    return const Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                      ),
+                    );
+                  }
+
+                  if (state is CoursesFailure) {
+                    return Center(
+                      child: Text(
+                        state.message,
+                        style: const TextStyle(
+                          fontFamily: 'Cairo',
+                          color: AppColors.textSecondaryLight,
+                        ),
+                      ),
+                    );
+                  }
+
+                  final List<CoursesEntity> courses =
+                  state is CoursesFetchSuccess ? state.courses : const [];
+                  final filtered = _filtered(courses);
+
+                  if (filtered.isEmpty) {
+                    return const Center(
                       child: Text(
                         'لا توجد نتائج',
                         style: TextStyle(
@@ -187,30 +237,38 @@ class _InstructorsScreenState extends State<InstructorsScreen> {
                           color: AppColors.textSecondaryLight,
                         ),
                       ),
-                    )
-                  : GridView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: 12,
-                            mainAxisSpacing: 12,
-                            childAspectRatio: 0.72,
-                          ),
-                      itemCount: _filtered.length,
-                      itemBuilder: (context, i) => InstructorCard(
-                        instructor: _filtered[i],
-                        onSave: () => setState(
-                          () => _filtered[i]['saved'] =
-                              !(_filtered[i]['saved'] as bool),
-                        ),
-                        onTap: () => Navigator.pushNamed(
-                          context,
-                          '/course-detail',
-                          arguments: _filtered[i],
-                        ),
+                    );
+                  }
+
+                  return GridView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    gridDelegate:
+                    const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      childAspectRatio: 0.72,
+                    ),
+                    itemCount: filtered.length,
+                    itemBuilder: (context, i) => InstructorCard(
+                      instructor: filtered[i],
+                      onSave: () => setState(() {
+                        final id = filtered[i]['courseId'] as String;
+                        if (_savedCourseIds.contains(id)) {
+                          _savedCourseIds.remove(id);
+                        } else {
+                          _savedCourseIds.add(id);
+                        }
+                      }),
+                      onTap: () => Navigator.pushNamed(
+                        context,
+                        CourseDetailScreen.routeName,
+                        arguments: filtered[i]['courseId'] as String,
                       ),
                     ),
+                  );
+                },
+              ),
             ),
           ],
         ),

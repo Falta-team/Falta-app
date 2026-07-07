@@ -4,6 +4,7 @@ import 'package:falta_app/features/auth/presentation/screens/login_screen.dart';
 import 'package:falta_app/features/onboarding/data/models/onboarding_page_data.dart';
 
 import 'package:falta_app/features/onboarding/presentation/widgets/onboarding_page_widget.dart';
+import 'package:falta_app/features/onboarding/service/onboarding_service.dart';
 import 'package:falta_app/utils/extensions/extensions.dart';
 import 'package:flutter/material.dart';
 
@@ -16,7 +17,9 @@ class OnboardingScreen extends StatefulWidget {
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
+  final OnboardingService _onboardingService = OnboardingService(); // ← أضف هذا
   int _currentPage = 0;
+
 
   final List<OnboardingPageData> _pages = const [
     OnboardingPageData(
@@ -49,12 +52,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
   }
 
-  void _navigateToLogin() {
+  void _navigateToLogin() async {
+    await _onboardingService.completeOnboarding(); // ← السطر المفقود
+    if (!mounted) return;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => const LoginScreen()),
     );
   }
-
   @override
   void dispose() {
     _pageController.dispose();

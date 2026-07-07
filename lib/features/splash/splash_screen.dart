@@ -1,16 +1,19 @@
+import 'package:falta_app/features/auth/presentation/screens/login_screen.dart';
+import 'package:falta_app/features/onboarding/presentation/screens/onboarding_screen.dart';
 import 'package:flutter/material.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HOW TO USE
 //  1. No extra packages needed — uses CustomPainter only
-//  2. Copy to: lib/presentation/screens/splash/splash_screen.dart
-//  3. In main.dart → home: const SplashScreen()
-//  4. Change kNextRoute to your first route
+//  2. In main.dart → home: SplashScreen(isFirstTime: isFirstTime)
+//  3. After the animation it decides on its own where to go next:
+//     OnboardingScreen (isFirstTime == true) or LoginScreen (false).
 // ─────────────────────────────────────────────────────────────────────────────
 
-const String kNextRoute = '/onBoarding';
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+  final bool isFirstTime;
+
+  const SplashScreen({super.key, required this.isFirstTime});
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
@@ -98,8 +101,13 @@ class _SplashScreenState extends State<SplashScreen>
     // 5 — hold then navigate
     await Future.delayed(const Duration(milliseconds: 1200));
     if (mounted) {
-      Navigator.of(context).pushReplacementNamed(kNextRoute);
-      // If using Go Router: context.go(kNextRoute);
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => widget.isFirstTime
+              ? const OnboardingScreen()
+              : const LoginScreen(),
+        ),
+      );
     }
   }
 

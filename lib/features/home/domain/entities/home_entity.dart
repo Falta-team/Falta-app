@@ -1,12 +1,20 @@
-/// Entity representing a [Home] in the domain layer.
+import 'package:falta_app/features/courses/domain/entities/courses_entity.dart';
+
+/// Entity representing the composed Home dashboard.
 ///
-/// This is a pure business object with no dependency on data sources
-/// (no JSON, no Firebase, no HTTP). Add the fields relevant to this
-/// feature below.
+/// There is no dedicated `/home` endpoint on the API, so this entity is
+/// assembled in the data layer from `/users/profile`, `/courses`, and
+/// `/subscriptions/status`.
 class HomeEntity {
   const HomeEntity({
-    required this.id,
+    required this.userName,
+    required this.userAvatar,
+    required this.featuredCourses,
+    required this.subscriptionActive,
   });
 
-  final String id;
+  final String userName;
+  final String userAvatar;
+  final List<CoursesEntity> featuredCourses;
+  final bool subscriptionActive;
 }

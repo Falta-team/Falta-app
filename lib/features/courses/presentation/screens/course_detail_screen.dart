@@ -1,12 +1,19 @@
 import 'package:falta_app/core/theme/app_colors.dart';
+import 'package:falta_app/features/courses/domain/bloc/courses_bloc.dart';
+import 'package:falta_app/features/courses/domain/bloc/courses_event.dart';
+import 'package:falta_app/features/courses/domain/bloc/courses_state.dart';
+import 'package:falta_app/features/courses/domain/entities/courses_entity.dart';
 import 'package:falta_app/utils/extensions/extensions.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class CourseDetailScreen extends StatefulWidget {
-  final Map<String, dynamic> course;
+  /// The real course id, received via navigation arguments — the screen
+  /// fetches the rest of the course data itself through [CoursesBloc].
+  final String courseId;
 
-  const CourseDetailScreen({super.key, required this.course});
+  const CourseDetailScreen({super.key, required this.courseId});
 
   static const String routeName = '/course-detail';
 
@@ -30,7 +37,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
       'name': 'دينا الفليت',
       'avatar': 'avatar',
       'text':
-          'يسرنا أن نقدم لزملائنا المعلمين والمعلمات، ولطلبتنا الأعزاء كتاب الرياضيات للصف.',
+      'يسرنا أن نقدم لزملائنا المعلمين والمعلمات، ولطلبتنا الأعزاء كتاب الرياضيات للصف.',
       'likes': '4',
       'replies': '1',
     },
@@ -38,7 +45,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
       'name': 'دينا الفليت',
       'avatar': 'avatar',
       'text':
-          'يسرنا أن نقدم لزملائنا المعلمين والمعلمات، ولطلبتنا الأعزاء كتاب الرياضيات للصف.',
+      'يسرنا أن نقدم لزملائنا المعلمين والمعلمات، ولطلبتنا الأعزاء كتاب الرياضيات للصف.',
       'likes': '4',
       'replies': '1',
     },
@@ -51,10 +58,15 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
     },
   ];
 
+  bool _enrolling = false;
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    context
+        .read<CoursesBloc>()
+        .add(FetchCourseDetailsRequested(widget.courseId));
   }
 
   @override
@@ -65,8 +77,55 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
 
   @override
   Widget build(BuildContext context) {
-    final course = widget.course;
+    return BlocConsumer<CoursesBloc, CoursesState>(
+      listener: (context, state) {
+        if (state is EnrollSuccess && state.courseId == widget.courseId) {
+          setState(() => _enrolling = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('تم التسجيل في الكورس بنجاح')),
+          );
+        } else if (state is CoursesFailure && _enrolling) {
+          setState(() => _enrolling = false);
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(state.message)));
+        }
+      },
+      builder: (context, state) {
+        if (state is CoursesFailure) {
+          return Scaffold(
+            backgroundColor: Colors.black,
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  state.message,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontFamily: 'Cairo',
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
 
+        if (state is! CourseDetailsFetchSuccess) {
+          return const Scaffold(
+            backgroundColor: Colors.black,
+            body: Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            ),
+          );
+        }
+
+        final course = state.course;
+        return _buildScaffold(context, course);
+      },
+    );
+  }
+
+  Widget _buildScaffold(BuildContext context, CoursesEntity course) {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
@@ -81,7 +140,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                   height: 240,
                   width: double.infinity,
                   child: Image.asset(
-                    'assets/images/${course['image'] ?? 'math'}.png',
+                    'assets/images/${course.image.isEmpty ? 'math' : course.image}.png',
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) =>
                         Container(color: const Color(0xFF1A1A2E)),
@@ -149,8 +208,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                             children: [
                               Expanded(
                                 child: Text(
-                                  course['title'] as String? ??
-                                      'كورس متكامل لمنهاج الرياضيات العلمي كامل',
+                                  course.title,
                                   style: GoogleFonts.inter(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w800,
@@ -160,20 +218,12 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                                 ),
                               ),
                               12.ws,
-                              // Bookmark + Share (screen 87 only has bookmark)
+                              // Bookmark
                               const Icon(
                                 Icons.bookmark,
                                 color: AppColors.primary,
                                 size: 26,
                               ),
-                              if (course['showShare'] == true) ...[
-                                8.ws,
-                                const Icon(
-                                  Icons.share_outlined,
-                                  color: AppColors.primary,
-                                  size: 24,
-                                ),
-                              ],
                             ],
                           ),
 
@@ -189,8 +239,9 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                               ),
                               6.ws,
                               Text(
-                                course['teacher'] as String? ??
-                                    'الأستاذ محمد اسماعيل',
+                                course.instructorName.isEmpty
+                                    ? 'غير معروف'
+                                    : course.instructorName,
                                 style: const TextStyle(
                                   fontSize: 13,
                                   color: AppColors.primary,
@@ -215,7 +266,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                               ),
                               4.ws,
                               Text(
-                                '${course['lessons'] ?? 12} فيديو',
+                                '${course.lessonsCount} فيديو',
                                 style: const TextStyle(
                                   fontSize: 12,
                                   color: AppColors.textSecondaryLight,
@@ -224,13 +275,13 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                               ),
                               20.ws,
                               const Icon(
-                                Icons.access_time,
-                                color: AppColors.textSecondaryLight,
+                                Icons.star,
+                                color: Color(0xFFF59E0B),
                                 size: 15,
                               ),
                               4.ws,
                               Text(
-                                '${course['hours'] ?? 1} س ${course['minutes'] ?? 12} د',
+                                course.rating.toStringAsFixed(1),
                                 style: const TextStyle(
                                   fontSize: 12,
                                   color: AppColors.textSecondaryLight,
@@ -253,12 +304,72 @@ class _CourseDetailScreenState extends State<CourseDetailScreen>
                           ),
                           6.hs,
                           Text(
-                            'يسرنا أن نقدم لزملائنا المعلمين والمعلمات، ولطلبتنا الأعزاء كتاب الرياضيات للصف الثاني الثانوي العلمي والصناعي، وفق الخطوط العريضة للتغذية الراجعة والدراسات الهادفة إلى تطوير امتلاجنا الفلسطينية، ومواكبتها العريضة لوثيقة الرياضيات، والتي تم تطويرها بناء مهارات القرن الحادي والعشرين، مستندين في ذلك كله لملعابير وطنية ودولية.',
+                            course.description.isEmpty
+                                ? 'لا يوجد وصف لهذا الكورس بعد.'
+                                : course.description,
                             style: GoogleFonts.inter(
                               fontSize: 12,
                               color: AppColors.textSecondaryLight,
                               height: 1.65,
                             ),
+                          ),
+
+                          16.hs,
+
+                          // ── Price + Enroll ──────────────────────────────
+                          Row(
+                            children: [
+                              Text(
+                                course.isPaid
+                                    ? '${course.price.toStringAsFixed(0)} شيكل'
+                                    : 'مجاني',
+                                style: GoogleFonts.inter(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.textDark,
+                                ),
+                              ),
+                              const Spacer(),
+                              SizedBox(
+                                height: 40,
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.primary,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius:
+                                      BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                  onPressed: _enrolling
+                                      ? null
+                                      : () {
+                                    setState(() => _enrolling = true);
+                                    context.read<CoursesBloc>().add(
+                                      EnrollCourseRequested(
+                                        course.id,
+                                      ),
+                                    );
+                                  },
+                                  child: _enrolling
+                                      ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                      : const Text(
+                                    'التسجيل في الكورس',
+                                    style: TextStyle(
+                                      fontFamily: 'Cairo',
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
