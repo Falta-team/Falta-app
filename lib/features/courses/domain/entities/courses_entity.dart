@@ -1,3 +1,7 @@
+/// Entity representing a [Courses] in the domain layer.
+///
+/// This is a pure business object with no dependency on data sources
+/// (no JSON, no Firebase, no HTTP).
 class CoursesEntity {
   const CoursesEntity({
     required this.id,

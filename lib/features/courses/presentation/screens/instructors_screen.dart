@@ -1,59 +1,42 @@
 import 'package:falta_app/core/theme/app_colors.dart';
-import 'package:falta_app/features/courses/domain/bloc/courses_bloc.dart';
-import 'package:falta_app/features/courses/domain/bloc/courses_event.dart';
-import 'package:falta_app/features/courses/domain/bloc/courses_state.dart';
 import 'package:falta_app/features/courses/domain/entities/courses_entity.dart';
+import 'package:falta_app/features/courses/domain/providers/courses_provider.dart';
 import 'package:falta_app/features/courses/presentation/screens/course_detail_screen.dart';
 import 'package:falta_app/features/courses/presentation/widgets/instructor_card.dart';
 import 'package:falta_app/utils/extensions/extensions.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class InstructorsScreen extends StatefulWidget {
-  final dynamic subject;
+class InstructorsScreen extends ConsumerStatefulWidget {
+  /// Display label shown in the AppBar title (e.g. "الرياضيات").
+  final String? subjectLabel;
 
-  const InstructorsScreen({super.key, this.subject});
+  /// Real API subject slug used for `GET /courses/subject/{subject}`
+  /// (e.g. "math"). Falls back to [subjectLabel] if not provided.
+  final String? subjectSlug;
+
+  const InstructorsScreen({super.key, this.subjectLabel, this.subjectSlug});
 
   static const String routeName = '/instructors';
 
   @override
-  State<InstructorsScreen> createState() => _InstructorsScreenState();
+  ConsumerState<InstructorsScreen> createState() => _InstructorsScreenState();
 }
 
-class _InstructorsScreenState extends State<InstructorsScreen> {
+class _InstructorsScreenState extends ConsumerState<InstructorsScreen> {
   final _searchCtrl = TextEditingController();
   String _query = '';
 
-  // Locally remembers which course cards the user bookmarked (the API has
-  // no "save instructor" endpoint in this feature's scope).
-  final Set<String> _savedCourseIds = {};
-
-  String? _subjectArg;
-  bool _dispatched = false;
-
-  // ── Adapt a [CoursesEntity] to the Map shape [InstructorCard] expects ──────
-  Map<String, dynamic> _courseToInstructorMap(CoursesEntity c) {
-    return <String, dynamic>{
-      'courseId': c.id,
-      'name': c.instructorName.isEmpty ? c.title : c.instructorName,
-      'desc': c.title,
-      'rating': c.rating,
-      'price': c.price,
-      'image': c.image,
-      'saved': _savedCourseIds.contains(c.id),
-    };
-  }
-
-  List<Map<String, dynamic>> _filtered(List<CoursesEntity> courses) {
-    final mapped = courses.map(_courseToInstructorMap).toList();
-    if (_query.isEmpty) return mapped;
-    return mapped
+  List<CoursesEntity> _filter(List<CoursesEntity> courses) {
+    if (_query.isEmpty) return courses;
+    return courses
         .where(
-          (i) =>
-      (i['name'] as String).contains(_query) ||
-          (i['desc'] as String).contains(_query),
-    )
+          (c) =>
+              c.instructorName.contains(_query) ||
+              c.title.contains(_query) ||
+              c.description.contains(_query),
+        )
         .toList();
   }
 
@@ -65,20 +48,17 @@ class _InstructorsScreenState extends State<InstructorsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final subject =
-        widget.subject ??
-            (ModalRoute.of(context)?.settings.arguments
-            as Map<String, dynamic>?)?['label'] ??
-            'الكورسات';
+    final routeArgs =
+        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
 
-    // Dispatch once, as soon as we know the subject to filter by.
-    if (!_dispatched) {
-      _dispatched = true;
-      _subjectArg = subject.toString();
-      context
-          .read<CoursesBloc>()
-          .add(FetchCoursesRequested(subject: _subjectArg));
-    }
+    final String subjectLabel = widget.subjectLabel ??
+        routeArgs?['label'] as String? ??
+        'الكورسات';
+    final String subjectSlug = widget.subjectSlug ??
+        routeArgs?['image'] as String? ??
+        subjectLabel;
+
+    final coursesAsync = ref.watch(coursesBySubjectProvider(subjectSlug));
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -92,7 +72,7 @@ class _InstructorsScreenState extends State<InstructorsScreen> {
           centerTitle: true,
           automaticallyImplyLeading: false,
           title: Text(
-            '$subject',
+            subjectLabel,
             style: GoogleFonts.inter(
               fontSize: 17,
               fontWeight: FontWeight.w700,
@@ -200,34 +180,46 @@ class _InstructorsScreenState extends State<InstructorsScreen> {
 
             12.hs,
 
-            // ── Grid (wired to CoursesBloc) ─────────────────────────────────
+            // ── Grid ───────────────────────────────────────────────────────
             Expanded(
-              child: BlocBuilder<CoursesBloc, CoursesState>(
-                builder: (context, state) {
-                  if (state is CoursesLoading || state is CoursesInitial) {
-                    return const Center(
-                      child: CircularProgressIndicator(
-                        color: AppColors.primary,
-                      ),
-                    );
-                  }
-
-                  if (state is CoursesFailure) {
-                    return Center(
-                      child: Text(
-                        state.message,
-                        style: const TextStyle(
-                          fontFamily: 'Cairo',
-                          color: AppColors.textSecondaryLight,
+              child: coursesAsync.when(
+                loading: () => const Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                ),
+                error: (error, _) => Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          error.toString(),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontFamily: 'Cairo',
+                            color: AppColors.textSecondaryLight,
+                          ),
                         ),
-                      ),
-                    );
-                  }
-
-                  final List<CoursesEntity> courses =
-                  state is CoursesFetchSuccess ? state.courses : const [];
-                  final filtered = _filtered(courses);
-
+                        12.hs,
+                        TextButton(
+                          onPressed: () => ref
+                              .read(coursesBySubjectProvider(subjectSlug)
+                                  .notifier)
+                              .refresh(),
+                          child: const Text(
+                            'إعادة المحاولة',
+                            style: TextStyle(
+                              fontFamily: 'Cairo',
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                data: (courses) {
+                  final filtered = _filter(courses);
                   if (filtered.isEmpty) {
                     return const Center(
                       child: Text(
@@ -239,33 +231,39 @@ class _InstructorsScreenState extends State<InstructorsScreen> {
                       ),
                     );
                   }
-
                   return GridView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     gridDelegate:
-                    const SliverGridDelegateWithFixedCrossAxisCount(
+                        const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
                       crossAxisSpacing: 12,
                       mainAxisSpacing: 12,
                       childAspectRatio: 0.72,
                     ),
                     itemCount: filtered.length,
-                    itemBuilder: (context, i) => InstructorCard(
-                      instructor: filtered[i],
-                      onSave: () => setState(() {
-                        final id = filtered[i]['courseId'] as String;
-                        if (_savedCourseIds.contains(id)) {
-                          _savedCourseIds.remove(id);
-                        } else {
-                          _savedCourseIds.add(id);
-                        }
-                      }),
-                      onTap: () => Navigator.pushNamed(
-                        context,
-                        CourseDetailScreen.routeName,
-                        arguments: filtered[i]['courseId'] as String,
-                      ),
-                    ),
+                    itemBuilder: (context, i) {
+                      final course = filtered[i];
+                      // InstructorCard keeps its original Map-based API
+                      // and layout untouched — we just feed it real
+                      // course/instructor data instead of the mock list.
+                      final instructorMap = <String, dynamic>{
+                        'name': course.instructorName,
+                        'desc': course.title,
+                        'rating': course.rating,
+                        'price': course.price,
+                        'image': course.image,
+                        'saved': false,
+                      };
+                      return InstructorCard(
+                        instructor: instructorMap,
+                        onSave: () {},
+                        onTap: () => Navigator.pushNamed(
+                          context,
+                          CourseDetailScreen.routeName,
+                          arguments: course.id,
+                        ),
+                      );
+                    },
                   );
                 },
               ),

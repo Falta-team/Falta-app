@@ -1,16 +1,9 @@
 import 'package:banner_image/banner_image.dart';
 import 'package:falta_app/core/theme/app_colors.dart';
-import 'package:falta_app/features/courses/domain/bloc/courses_bloc.dart';
-import 'package:falta_app/features/courses/domain/bloc/courses_event.dart';
-import 'package:falta_app/features/courses/domain/bloc/courses_state.dart';
-import 'package:falta_app/features/courses/domain/entities/courses_entity.dart';
-import 'package:falta_app/features/courses/presentation/screens/course_detail_screen.dart';
-import 'package:falta_app/features/courses/presentation/widgets/courses_card.dart';
 import 'package:falta_app/features/courses/presentation/widgets/subject_card.dart';
 import 'package:falta_app/utils/extensions/extensions.dart';
 import 'package:falta_app/utils/extensions/strings.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class CoursesScreen extends StatefulWidget {
@@ -32,28 +25,6 @@ class _CoursesScreenState extends State<CoursesScreen> {
     'img2banner.png'.image_,
   ];
   String _image = '';
-
-  @override
-  void initState() {
-    super.initState();
-    // Kick off the real "كل الكورسات" fetch as soon as the screen mounts.
-    context.read<CoursesBloc>().add(const FetchCoursesRequested());
-  }
-
-  // ── Adapt a [CoursesEntity] to the Map shape [CoursesCard] expects ─────────
-  Map<String, dynamic> _courseToCardMap(CoursesEntity c) {
-    return <String, dynamic>{
-      'image': c.image,
-      'subject': c.subject,
-      'title': c.title,
-      'teacher': c.instructorName,
-      'lessons': c.lessonsCount,
-      'hours': 0,
-      'rating': c.rating,
-      'isPaid': c.isPaid,
-      'progress': 0.0,
-    };
-  }
 
   // ── Subjects grid ──────────────────────────────────────────────────────────
   static const List<Map<String, dynamic>> _subjects = [
@@ -259,87 +230,6 @@ class _CoursesScreenState extends State<CoursesScreen> {
               ),
 
               24.hs,
-
-              // ── Section Title (real courses) ────────────────────────────
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Text(
-                  'كل الكورسات',
-                  style: GoogleFonts.inter(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textDark,
-                  ),
-                ),
-              ),
-
-              12.hs,
-
-              // ── Real Courses List (wired to CoursesBloc) ─────────────────
-              BlocBuilder<CoursesBloc, CoursesState>(
-                builder: (context, state) {
-                  if (state is CoursesLoading || state is CoursesInitial) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 32),
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    );
-                  }
-
-                  if (state is CoursesFailure) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(
-                        state.message,
-                        style: const TextStyle(
-                          fontFamily: 'Cairo',
-                          color: AppColors.textSecondaryLight,
-                        ),
-                      ),
-                    );
-                  }
-
-                  if (state is CoursesFetchSuccess) {
-                    if (state.courses.isEmpty) {
-                      return const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16),
-                        child: Text(
-                          'لا توجد كورسات متاحة حالياً',
-                          style: TextStyle(
-                            fontFamily: 'Cairo',
-                            color: AppColors.textSecondaryLight,
-                          ),
-                        ),
-                      );
-                    }
-
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Column(
-                        children: state.courses
-                            .map(
-                              (course) => CoursesCard(
-                            course: _courseToCardMap(course),
-                            onTap: () => Navigator.pushNamed(
-                              context,
-                              CourseDetailScreen.routeName,
-                              arguments: course.id,
-                            ),
-                          ),
-                        )
-                            .toList(),
-                      ),
-                    );
-                  }
-
-                  return const SizedBox.shrink();
-                },
-              ),
-
-              24.hs,
             ],
           ),
         ),
@@ -347,3 +237,5 @@ class _CoursesScreenState extends State<CoursesScreen> {
     );
   }
 }
+
+

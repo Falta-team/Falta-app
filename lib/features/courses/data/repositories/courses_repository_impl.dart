@@ -1,4 +1,3 @@
-
 import 'dart:convert';
 
 import 'package:falta_app/core/api/api_settings.dart';
@@ -35,9 +34,9 @@ class CoursesRepositoryImpl implements CoursesRepository {
       final dynamic body = jsonDecode(response.body);
 
       if (ApiSettings.isSuccess(response.statusCode)) {
-        return _extractList(body)
-            .map((e) => CoursesModel.fromJson(e as Map<String, dynamic>))
-            .toList();
+        return _extractList(
+          body,
+        ).map((e) => CoursesModel.fromJson(e as Map<String, dynamic>)).toList();
       }
 
       throw CoursesApiException(_extractMessage(body) ?? 'فشل تحميل الكورسات');
@@ -78,9 +77,9 @@ class CoursesRepositoryImpl implements CoursesRepository {
       final dynamic body = jsonDecode(response.body);
 
       if (ApiSettings.isSuccess(response.statusCode)) {
-        return _extractList(body)
-            .map((e) => CoursesModel.fromJson(e as Map<String, dynamic>))
-            .toList();
+        return _extractList(
+          body,
+        ).map((e) => CoursesModel.fromJson(e as Map<String, dynamic>)).toList();
       }
 
       throw CoursesApiException(
@@ -116,12 +115,19 @@ class CoursesRepositoryImpl implements CoursesRepository {
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────
-  /// The API may wrap a list under `data` / `courses`, or return it raw.
+  /// Confirmed real shape: `{ success, data: { courses: [...], pagination } }`.
+  /// Falls back gracefully in case the backend ever changes the wrapper.
   List<dynamic> _extractList(dynamic body) {
     if (body is List) return body;
     if (body is Map<String, dynamic>) {
-      final dynamic data = body['data'] ?? body['courses'];
+      final dynamic data = body['data'];
+      if (data is Map<String, dynamic>) {
+        final dynamic courses = data['courses'];
+        if (courses is List) return courses;
+      }
       if (data is List) return data;
+      final dynamic coursesFlat = body['courses'];
+      if (coursesFlat is List) return coursesFlat;
     }
     return const [];
   }
@@ -142,4 +148,3 @@ class CoursesRepositoryImpl implements CoursesRepository {
     return null;
   }
 }
-

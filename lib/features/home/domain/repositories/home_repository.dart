@@ -6,5 +6,8 @@ import 'package:falta_app/features/home/domain/entities/home_entity.dart';
 /// (`home_repository_impl.dart`) and is the only
 /// place allowed to know about the actual data source (API, local DB, etc).
 abstract class HomeRepository {
-  Future<List<HomeEntity>> getAll();
+  /// Composes the dashboard from `/users/profile`, `/courses`, and
+  /// `/subscriptions/status`. [token] is required to authenticate the
+  /// profile and subscription calls.
+  Future<HomeEntity> getHomeDashboard({required String token});
 }

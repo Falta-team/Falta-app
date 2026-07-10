@@ -6,8 +6,6 @@ import 'package:falta_app/features/auth/presentation/screens/login_screen.dart';
 import 'package:falta_app/features/auth/presentation/screens/otp_verify_screen.dart';
 import 'package:falta_app/features/auth/presentation/screens/register_screen.dart';
 import 'package:falta_app/features/auth/presentation/screens/reset_password_screen.dart';
-import 'package:falta_app/features/courses/domain/bloc/courses_bloc.dart';
-import 'package:falta_app/features/courses/domain/bloc/courses_state.dart';
 import 'package:falta_app/features/courses/presentation/screens/course_detail_screen.dart';
 import 'package:falta_app/features/courses/presentation/screens/courses_screen.dart';
 import 'package:falta_app/features/courses/presentation/screens/instructors_screen.dart';
@@ -21,6 +19,7 @@ import 'package:falta_app/features/splash/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Future<void> main() async {
@@ -37,7 +36,24 @@ Future<void> main() async {
   await SharedPreferences.getInstance();
   final bool isFirstTime = await OnboardingService().isFirstLaunch();
 
-  runApp(MyApp(isFirstTime: isFirstTime));
+  // ── ProviderScope wraps the whole app once, at the very root, so any
+  // widget can reach Riverpod providers (coursesListProvider,
+  // homeDashboardProvider, etc.) via ref.watch(...) / ref.read(...).
+  // Auth still uses flutter_bloc — only courses & home were migrated to
+  // Riverpod — so MultiBlocProvider stays nested just below it.
+  //
+  // Riverpod 3.x auto-retries a failing provider (exponential backoff,
+  // up to 10 attempts) by default. Our courses/home providers throw
+  // user-facing Arabic errors (e.g. "يجب تسجيل الدخول أولاً") that should
+  // surface immediately instead of silently retrying for ~30s first, so
+  // retry is disabled app-wide to match the old BLoC's fail-fast
+  // behavior. See https://riverpod.dev/docs/3.0_migration.
+  runApp(
+    ProviderScope(
+      retry: (retryCount, error) => null,
+      child: MyApp(isFirstTime: isFirstTime),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -47,11 +63,15 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<AuthBloc>(
-      // Provided once at the root so every screen (Login, Register,
-      // ForgotPassword, OtpVerify, ResetPassword, ...) can reach it via
-      // context.read<AuthBloc>() / BlocConsumer<AuthBloc, AuthState>.
-      create: (_) => AuthBloc(),
+    return MultiBlocProvider(
+      // Provided once at the root so every screen can reach the bloc it
+      // needs via context.read<...>() / BlocConsumer<...>.
+      // CoursesBloc and HomeBloc were removed — those two features now
+      // run on Riverpod (see courses_provider.dart / home_provider.dart),
+      // no BlocProvider registration needed for them anymore.
+      providers: [
+        BlocProvider<AuthBloc>(create: (_) => AuthBloc()),
+      ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
@@ -73,18 +93,19 @@ class MyApp extends StatelessWidget {
           '/account':                (_) => const ProfileScreen(),
           '/courses':                (_) => const CoursesScreen(),
           '/exams':                  (_) => const ExamsScreen(),
-          '/instructors': (context) {
-            final args = ModalRoute.of(context)!.settings.arguments
-            as Map<String, dynamic>?;
-            return InstructorsScreen(subject: args?['label']);
-          },
+          // InstructorsScreen reads its subject label/slug straight off
+          // ModalRoute.settings.arguments itself, so no need to unpack
+          // the arguments map here anymore.
+          '/instructors':            (_) => const InstructorsScreen(),
         },
-        // Route with arguments (course detail)
+        // Route with arguments (course detail) — receives the real course
+        // id (String) via navigation arguments, the screen fetches the
+        // rest through courseDetailsProvider (Riverpod).
         onGenerateRoute: (settings) {
-          if (settings.name == '/course-detail') {
-
+          if (settings.name == CourseDetailScreen.routeName) {
+            final courseId = settings.arguments as String? ?? '';
             return MaterialPageRoute(
-              builder: (_) => CourseDetailScreen(courseId: ,),
+              builder: (_) => CourseDetailScreen(courseId: courseId),
             );
           }
           return null;

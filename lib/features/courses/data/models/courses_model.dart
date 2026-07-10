@@ -1,5 +1,12 @@
 import 'package:falta_app/features/courses/domain/entities/courses_entity.dart';
 
+/// Data model for Courses.
+///
+/// Handles JSON (de)serialization and maps to/from the domain
+/// [CoursesEntity]. This is the only layer allowed to know about the raw
+/// API field names. The API may nest instructor data as
+/// `instructor: {id, name}` or return it flat as
+/// `instructorId` / `instructorName`, so both shapes are handled here.
 class CoursesModel extends CoursesEntity {
   const CoursesModel({
     required super.id,
