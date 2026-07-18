@@ -6,22 +6,13 @@ import 'package:falta_app/features/home/domain/entities/home_entity.dart';
 import 'package:falta_app/features/home/domain/repositories/home_repository.dart';
 import 'package:http/http.dart' as http;
 
-/// Feature-specific exception carrying the API's Arabic `message` field.
 class HomeApiException implements Exception {
   const HomeApiException(this.message);
-
   final String message;
-
   @override
   String toString() => message;
 }
 
-/// Concrete implementation of [HomeRepository].
-///
-/// There is no dedicated `/home` endpoint, so this repository composes
-/// the dashboard from three existing endpoints, calling all of them in
-/// parallel via [Future.wait]. Each individual call still checks its own
-/// status code and decodes independently before the results are merged.
 class HomeRepositoryImpl implements HomeRepository {
   const HomeRepositoryImpl();
 
@@ -29,22 +20,16 @@ class HomeRepositoryImpl implements HomeRepository {
   Future<HomeEntity> getHomeDashboard({required String token}) async {
     try {
       final responses = await Future.wait([
-        http.get(
-          Uri.parse(ApiSettings.profile),
-          headers: ApiSettings.authHeaders(token),
-        ),
-        http.get(
-          Uri.parse(ApiSettings.courses),
-          headers: ApiSettings.jsonHeaders,
-        ),
-        http.get(
-          Uri.parse(ApiSettings.subscriptionStatus),
-          headers: ApiSettings.authHeaders(token),
-        ),
+        http.get(Uri.parse(ApiSettings.profile),
+            headers: ApiSettings.authHeaders(token)),
+        http.get(Uri.parse(ApiSettings.courses),
+            headers: ApiSettings.jsonHeaders),
+        http.get(Uri.parse(ApiSettings.subscriptionStatus),
+            headers: ApiSettings.authHeaders(token)),
       ]);
 
-      final profileResponse = responses[0];
-      final coursesResponse = responses[1];
+      final profileResponse      = responses[0];
+      final coursesResponse      = responses[1];
       final subscriptionResponse = responses[2];
 
       // ── Profile (required) ────────────────────────────────────────────
@@ -54,22 +39,23 @@ class HomeRepositoryImpl implements HomeRepository {
               'فشل تحميل بيانات الملف الشخصي',
         );
       }
-      final profileJson = jsonDecode(profileResponse.body) as Map<String, dynamic>;
+      final profileJson =
+      jsonDecode(profileResponse.body) as Map<String, dynamic>;
 
-      // ── Courses (required) ─────────────────────────────────────────────
+      // ── Courses (required) ────────────────────────────────────────────
       if (!ApiSettings.isSuccess(coursesResponse.statusCode)) {
         throw HomeApiException(
           _extractMessage(_tryDecode(coursesResponse.body)) ??
               'فشل تحميل الكورسات',
         );
       }
-      final dynamic coursesBody = jsonDecode(coursesResponse.body);
-      final List<dynamic> coursesJson = coursesBody is Map<String, dynamic>
-          ? ((coursesBody['data'] ?? coursesBody['courses'] ?? const [])
-              as List<dynamic>)
-          : (coursesBody as List<dynamic>);
+      final dynamic coursesRaw = jsonDecode(coursesResponse.body);
 
-      // ── Subscription (optional badge — tolerate failure) ───────────────
+      // ✅ FIX: API shape is { data: { courses: [...] } }
+      // _extractCoursesList handles all nesting variants safely.
+      final List<dynamic> coursesJson = _extractCoursesList(coursesRaw);
+
+      // ── Subscription (optional — tolerate failure) ────────────────────
       Map<String, dynamic>? subscriptionJson;
       if (ApiSettings.isSuccess(subscriptionResponse.statusCode)) {
         final dynamic decoded = _tryDecode(subscriptionResponse.body);
@@ -77,8 +63,8 @@ class HomeRepositoryImpl implements HomeRepository {
       }
 
       return HomeModel.fromResponses(
-        profileJson: profileJson,
-        coursesJson: coursesJson,
+        profileJson:      profileJson,
+        coursesJson:      coursesJson,
         subscriptionJson: subscriptionJson,
       );
     } on HomeApiException {
@@ -89,6 +75,30 @@ class HomeRepositoryImpl implements HomeRepository {
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────
+
+  /// Safely extracts the courses list from any API wrapper shape:
+  /// - `{ data: { courses: [...] } }`   ← confirmed real shape
+  /// - `{ data: [...] }`
+  /// - `{ courses: [...] }`
+  /// - `[...]`   (raw array)
+  List<dynamic> _extractCoursesList(dynamic body) {
+    if (body is List) return body;
+    if (body is Map<String, dynamic>) {
+      final dynamic data = body['data'];
+      // { data: { courses: [...] } }
+      if (data is Map<String, dynamic>) {
+        final dynamic courses = data['courses'];
+        if (courses is List) return courses;
+      }
+      // { data: [...] }
+      if (data is List) return data;
+      // { courses: [...] }
+      final dynamic flat = body['courses'];
+      if (flat is List) return flat;
+    }
+    return const [];
+  }
+
   dynamic _tryDecode(String body) {
     try {
       return jsonDecode(body);

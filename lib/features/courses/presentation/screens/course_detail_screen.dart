@@ -78,6 +78,7 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
   @override
   Widget build(BuildContext context) {
     final courseAsync = ref.watch(courseDetailsProvider(widget.courseId));
+    print(widget.courseId);
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -118,7 +119,8 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
               ),
             ),
           ),
-          data: (course) => _buildContent(context, course),
+          data: (course) =>
+              _buildContent(context, course),
         ),
       ),
     );
@@ -193,7 +195,7 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
+                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -205,8 +207,8 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
                             child: Text(
                               course.title,
                               style: GoogleFonts.inter(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
                                 color: AppColors.textDark,
                                 height: 1.4,
                               ),
@@ -221,23 +223,23 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
                         ],
                       ),
 
-                      10.hs,
+                      12.hs,
 
                       // ── Teacher ────────────────────────────────────
                       Row(
                         children: [
                           const Icon(
-                            Icons.person_outline,
+                            Icons.person,
                             color: AppColors.primary,
-                            size: 16,
+                            size: 20,
                           ),
                           6.ws,
                           Text(
                             course.instructorName,
                             style: const TextStyle(
-                              fontSize: 13,
+                              fontSize: 12,
                               color: AppColors.primary,
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.w400,
                               fontFamily: 'Cairo',
                               decoration: TextDecoration.underline,
                               decorationColor: AppColors.primary,
@@ -256,13 +258,28 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
                       Row(
                         children: [
                           const Icon(
-                            Icons.play_circle_outline,
+                            Icons.play_circle_filled_rounded,
                             color: AppColors.textSecondaryLight,
-                            size: 15,
+                            size: 20,
                           ),
                           4.ws,
                           Text(
                             '${course.lessonsCount} فيديو',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondaryLight,
+                              fontFamily: 'Cairo',
+                            ),
+                          ),
+                          36.ws,
+                          const Icon(
+                            Icons.access_time_filled,
+                            color: AppColors.textSecondaryLight,
+                            size: 20,
+                          ),
+                          4.ws,
+                          Text(
+                            '${course.lessonsCount} س',
                             style: const TextStyle(
                               fontSize: 12,
                               color: AppColors.textSecondaryLight,

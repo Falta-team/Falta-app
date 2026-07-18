@@ -1,6 +1,7 @@
 import 'package:falta_app/core/theme/app_colors.dart';
 import 'package:falta_app/features/courses/domain/entities/instructor_entity.dart';
 import 'package:falta_app/utils/extensions/extensions.dart';
+import 'package:falta_app/utils/extensions/strings.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -10,12 +11,15 @@ import 'package:google_fonts/google_fonts.dart';
 /// a sub-headline (subject / grade), and a price tag with a green icon.
 class InstructorCard extends StatelessWidget {
   final Map<String, dynamic> instructor;
+  late String name;
+
   final VoidCallback onSave;
   final VoidCallback onTap;
 
-  const InstructorCard({
+   InstructorCard({
     required this.instructor,
     required this.onSave,
+    required this.name,
     required this.onTap,
   });
 
@@ -62,36 +66,40 @@ class InstructorCard extends StatelessWidget {
                   // Rating + name row
                   Row(
                     children: [
-                      const Icon(Icons.star,
-                          color: Color(0xFFF59E0B), size: 14),
-                      4.ws,
+                      Text(
+                        instructor['fullName'] as String,
+                        style: GoogleFonts.inter(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w400,
+                          color: AppColors.textDark,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Spacer(),
                       Text(
                         '${instructor['rating']}',
                         style: const TextStyle(
-                          fontSize: 12,
+                          fontSize: 8,
                           fontWeight: FontWeight.w700,
                           fontFamily: 'Cairo',
-                          color: AppColors.textDark,
+                          color: AppColors.primary,
                         ),
                       ),
+                      2.ws,
+
+                       Image.asset('rating_star.png'.icon_,height: 16,width: 16,),
+
+
                     ],
                   ),
                   4.hs,
-                  Text(
-                    instructor['name'] as String,
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textDark,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+
                   3.hs,
                   Text(
                     instructor['desc'] as String,
                     style: const TextStyle(
-                      fontSize: 10,
+                      fontSize: 8,
                       color: AppColors.textSecondaryLight,
                       fontFamily: 'Cairo',
                       height: 1.4,

@@ -33,10 +33,10 @@ class CoursesModel extends CoursesEntity {
       instructorId = instructorRaw['id']?.toString() ??
           instructorRaw['_id']?.toString() ??
           '';
-      instructorName = instructorRaw['name']?.toString() ?? '';
+      instructorName = instructorRaw['fullName']?.toString() ?? '';
     } else {
       instructorId = json['instructorId']?.toString() ?? '';
-      instructorName = json['instructorName']?.toString() ?? '';
+      instructorName = json['fullName']?.toString() ?? '';
     }
 
     final num? priceRaw = json['price'] as num?;
@@ -52,8 +52,8 @@ class CoursesModel extends CoursesEntity {
       academicTrack: json['academicTrack'] as String? ?? '',
       difficultyLevel: json['difficultyLevel'] as String? ?? '',
       lessonsCount: (json['lessonsCount'] as num?)?.toInt() ?? 0,
-      rating: (json['rating'] as num?)?.toDouble() ?? 0.0,
-      price: priceRaw?.toDouble() ?? 0.0,
+      rating: (json['rating'] as num?)?.toDouble() ?? 4.5,
+      price: priceRaw?.toDouble() ?? 70.0,
       isPaid: json['isPaid'] as bool? ?? ((priceRaw ?? 0) > 0),
     );
   }
@@ -66,7 +66,7 @@ class CoursesModel extends CoursesEntity {
       'image': image,
       'subject': subject,
       'instructorId': instructorId,
-      'instructorName': instructorName,
+      'fullName': instructorName,
       'academicTrack': academicTrack,
       'difficultyLevel': difficultyLevel,
       'lessonsCount': lessonsCount,

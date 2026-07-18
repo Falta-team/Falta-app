@@ -217,7 +217,9 @@ class AuthApiController {
       final body = jsonDecode(response.body) as Map<String, dynamic>;
 
       if (ApiSettings.isSuccess(response.statusCode)) {
-        return ApiResult.success(AuthTokens.fromJson(body));
+        // ✅ نفس نمط login: اقرأ data wrapper إذا موجود
+        final data = body['data'] as Map<String, dynamic>? ?? body;
+        return ApiResult.success(AuthTokens.fromJson(data));
       } else {
         return ApiResult.failure(
           body['message'] as String? ?? 'انتهت صلاحية الجلسة',
@@ -227,7 +229,6 @@ class AuthApiController {
       return ApiResult.failure('خطأ في الاتصال: $e');
     }
   }
-
   // ── 7. Logout ────────────────────────────────────────────────────────────────
   Future<ApiResult<void>> logout({
     required String refreshToken,

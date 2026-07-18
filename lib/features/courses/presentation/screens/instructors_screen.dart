@@ -247,14 +247,15 @@ class _InstructorsScreenState extends ConsumerState<InstructorsScreen> {
                       // and layout untouched — we just feed it real
                       // course/instructor data instead of the mock list.
                       final instructorMap = <String, dynamic>{
-                        'name': course.instructorName,
-                        'desc': course.title,
+                        'fullName': course.instructorName,
+                        'desc': course.description,
                         'rating': course.rating,
                         'price': course.price,
                         'image': course.image,
                         'saved': false,
                       };
                       return InstructorCard(
+                        name: course.instructorName,
                         instructor: instructorMap,
                         onSave: () {},
                         onTap: () => Navigator.pushNamed(

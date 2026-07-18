@@ -75,15 +75,17 @@ class ForgotPasswordFailureState extends AuthState {
 // ── Verify OTP ────────────────────────────────────────────────────────────────
 class VerifyOtpSuccessState extends AuthState {
   final String phoneNumber;
-  final String code;        // carry code to ResetPassword screen
+  final String code;// carry code to ResetPassword screen
+  final OtpFlowType flowType;
 
   const VerifyOtpSuccessState({
     required this.phoneNumber,
     required this.code,
+    required this.flowType,
   });
 
   @override
-  List<Object?> get props => [phoneNumber, code];
+  List<Object?> get props => [phoneNumber, code,flowType];
 }
 
 class VerifyOtpFailureState extends AuthState {

@@ -1,5 +1,5 @@
 part of 'auth_bloc.dart';
-
+enum OtpFlowType { register, forgotPassword }
 abstract class AuthEvent extends Equatable {
   const AuthEvent();
 
@@ -11,6 +11,7 @@ abstract class AuthEvent extends Equatable {
 class LoginEvent extends AuthEvent {
   final String phoneNumber;
   final String password;
+
 
   const LoginEvent({
     required this.phoneNumber,
@@ -55,14 +56,16 @@ class ForgotPasswordEvent extends AuthEvent {
 class VerifyOtpEvent extends AuthEvent {
   final String phoneNumber;
   final String code;
+  final OtpFlowType flowType;  // ← أضف هاد
 
   const VerifyOtpEvent({
     required this.phoneNumber,
-    required this.code,
+    required this.code, required this.flowType,
   });
 
   @override
-  List<Object?> get props => [phoneNumber, code];
+  List<Object?> get props => [phoneNumber, code,flowType];
+
 }
 
 // ── Reset Password ────────────────────────────────────────────────────────────

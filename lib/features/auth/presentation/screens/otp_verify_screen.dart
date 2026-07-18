@@ -10,8 +10,9 @@ import 'package:pinput/pinput.dart';
 
 class OtpVerifyScreen extends StatefulWidget {
   final String phoneNumber;
+  final OtpFlowType flowType;
 
-  const OtpVerifyScreen({super.key, this.phoneNumber = '+970 597559410'});
+  const OtpVerifyScreen({super.key, this.phoneNumber = '+970 597559410',this.flowType = OtpFlowType.forgotPassword,});
 
   @override
   State<OtpVerifyScreen> createState() => _OtpVerifyScreenState();
@@ -66,6 +67,7 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
       VerifyOtpEvent(
         phoneNumber: _phone,
         code:        _pinController.text,
+        flowType:    widget.flowType,
       ),
     );
 

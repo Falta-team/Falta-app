@@ -87,9 +87,13 @@ class CourseDetailsNotifier extends AsyncNotifier<CoursesEntity> {
 
   final String courseId;
 
+
   @override
   Future<CoursesEntity> build() {
+    print('title2: $courseId');
+
     return GetCourseDetails(ref.read(coursesRepositoryProvider))(courseId);
+
   }
 }
 

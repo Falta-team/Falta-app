@@ -119,6 +119,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       emit(VerifyOtpSuccessState(
         phoneNumber: event.phoneNumber,
         code:        event.code,
+        flowType:    event.flowType,
       ));
     } else {
       emit(VerifyOtpFailureState(result.error ?? 'الرمز غير صحيح'));
