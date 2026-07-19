@@ -1,3 +1,4 @@
+import 'package:falta_app/core/pref/shared_pref_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Handles one-time onboarding logic using SharedPreferences.
@@ -7,7 +8,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 ///   await service.completeOnboarding();              // mark done
 class OnboardingService {
   static const String _keyOnboardingDone = 'onboarding_done';
-  static const String _keyAccessToken    = 'access_token';
 
   /// Returns true if the user is opening the app for the FIRST time.
   Future<bool> isFirstLaunch() async {
@@ -23,8 +23,7 @@ class OnboardingService {
 
   /// Returns true if the user already has a saved access token.
   Future<bool> isAuthenticated() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.containsKey(_keyAccessToken);
+    return SharedPrefController().accessToken.isNotEmpty;
   }
 
   /// Convenience: determine where to go on app start.

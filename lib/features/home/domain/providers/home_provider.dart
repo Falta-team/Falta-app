@@ -1,17 +1,13 @@
+import 'package:falta_app/core/pref/shared_pref_controller.dart';
 import 'package:falta_app/features/home/data/repositories/home_repository_impl.dart';
 import 'package:falta_app/features/home/domain/entities/home_entity.dart';
 import 'package:falta_app/features/home/domain/repositories/home_repository.dart';
 import 'package:falta_app/features/home/domain/usecases/get_home.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
-// Same SharedPreferences key AuthBloc / AuthProvider saves the access
-// token under.
-const String _keyAccessToken = 'access_token';
 
 /// ── Repository ────────────────────────────────────────────────────────────
 final homeRepositoryProvider = Provider<HomeRepository>(
-  (ref) => const HomeRepositoryImpl(),
+      (ref) => const HomeRepositoryImpl(),
 );
 
 /// ── Home dashboard ────────────────────────────────────────────────────────
@@ -22,7 +18,7 @@ final homeRepositoryProvider = Provider<HomeRepository>(
 /// `context.read<HomeBloc>().add(...)` dispatch needed on `initState`,
 /// since `build()` runs automatically the first time the provider is read.
 final homeDashboardProvider =
-    AsyncNotifierProvider<HomeDashboardNotifier, HomeEntity>(
+AsyncNotifierProvider<HomeDashboardNotifier, HomeEntity>(
   HomeDashboardNotifier.new,
 );
 
@@ -31,10 +27,9 @@ class HomeDashboardNotifier extends AsyncNotifier<HomeEntity> {
   Future<HomeEntity> build() => _fetch();
 
   Future<HomeEntity> _fetch() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString(_keyAccessToken);
+    final token = SharedPrefController().accessToken;
 
-    if (token == null || token.isEmpty) {
+    if (token.isEmpty) {
       throw const HomeApiException('يجب تسجيل الدخول أولاً');
     }
 

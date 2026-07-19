@@ -23,6 +23,14 @@ class ApiSettings {
   static String courseVideos(String id)    => '$courses/$id/videos';
   static String courseProgress(String id)  => '$courses/$id/progress';
 
+  // ── Videos / Comments ───────────────────────────────────────────────────────
+  static const String videos        = '$baseUrl/videos';
+  static String videoStream(String videoId)   => '$videos/$videoId/stream';
+  static String recordVideoView(String videoId) => '$videos/$videoId/view';
+  static String videoComments(String videoId) => '$videos/$videoId/comments';
+  static String videoComment(String videoId, String commentId) =>
+      '$videos/$videoId/comments/$commentId';
+
   // ── Instructors ─────────────────────────────────────────────────────────────
   static const String instructors    = '$baseUrl/instructors';
   static String instructorById(String id)  => '$instructors/$id';

@@ -1,6 +1,9 @@
+import 'package:falta_app/features/notifications/domain/providers/notifications_provider.dart';
+import 'package:falta_app/utils/extensions/extensions.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class NotificationsScreen extends StatelessWidget {
+class NotificationsScreen extends ConsumerWidget {
   const NotificationsScreen({super.key});
 
   static const Color kBg       = Color(0xFFF3F9FF);
@@ -10,18 +13,11 @@ class NotificationsScreen extends StatelessWidget {
   static const Color kBorder   = Color(0xFFE2E8F0);
   static const Color kWhite    = Color(0xFFFFFFFF);
 
-  static const List<Map<String, String>> _notifications = [
-    {'title': 'مرحبا محمد', 'body': 'هذا النص هو مثال لنص يمكن أن يستبدل', 'time': 'منذ 5 ساعات'},
-    {'title': 'مرحبا محمد', 'body': 'هذا النص هو مثال لنص يمكن أن يستبدل', 'time': 'منذ 5 ساعات'},
-    {'title': 'مرحبا محمد', 'body': 'هذا النص هو مثال لنص يمكن أن يستبدل', 'time': 'منذ 5 ساعات'},
-    {'title': 'مرحبا محمد', 'body': 'هذا النص هو مثال لنص يمكن أن يستبدل', 'time': 'منذ 5 ساعات'},
-    {'title': 'مرحبا محمد', 'body': 'هذا النص هو مثال لنص يمكن أن يستبدل', 'time': 'منذ 5 ساعات'},
-    {'title': 'مرحبا محمد', 'body': 'هذا النص هو مثال لنص يمكن أن يستبدل', 'time': 'منذ 5 ساعات'},
-    {'title': 'مرحبا محمد', 'body': 'هذا النص هو مثال لنص يمكن أن يستبدل', 'time': 'منذ 5 ساعات'},
-  ];
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final notificationsAsync = ref.watch(notificationsListProvider);
+    final notificationsEnabled = ref.watch(notificationsEnabledProvider);
+
     return Scaffold(
       backgroundColor: kBg,
       body: SafeArea(
@@ -35,6 +31,11 @@ class NotificationsScreen extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: const Icon(Icons.arrow_forward,
+                          color: kTextDark, size: 26),
+                    ),
                     const Text(
                       'الاشعارات',
                       style: TextStyle(
@@ -44,10 +45,18 @@ class NotificationsScreen extends StatelessWidget {
                         fontFamily: 'Cairo',
                       ),
                     ),
-                    GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: const Icon(Icons.arrow_forward,
-                          color: kTextDark, size: 26),
+                    // Enable/disable local notifications for new lessons
+                    // or replies (persisted via SharedPrefController).
+                    Row(
+                      children: [
+                        Switch(
+                          value: notificationsEnabled,
+                          activeThumbColor: kGreen,
+                          onChanged: (value) => ref
+                              .read(notificationsEnabledProvider.notifier)
+                              .toggle(value),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -57,77 +66,163 @@ class NotificationsScreen extends StatelessWidget {
 
               // ── List ─────────────────────────────────────────────────────
               Expanded(
-                child: ListView.separated(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  itemCount: _notifications.length,
-                  separatorBuilder: (_, __) =>
-                  const Divider(color: kBorder, height: 1, indent: 20, endIndent: 20),
-                  itemBuilder: (context, i) {
-                    final n = _notifications[i];
-                    return Container(
-                      height: 96,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 14),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Icon
-                            Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                color: kGreen,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Icon(
-                                Icons.notifications_outlined,
-                                color: kWhite,
-                                size: 22,
-                              ),
+                child: notificationsAsync.when(
+                  loading: () =>
+                  const Center(child: CircularProgressIndicator(color: kGreen)),
+                  error: (error, _) => Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            error.toString(),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontFamily: 'Cairo',
+                              color: kTextGray,
                             ),
-                            const SizedBox(width: 12),
-
-                            // Content
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    n['title']!,
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w700,
-                                      color: kTextDark,
-                                      fontFamily: 'Cairo',
-                                    ),
-                                  ),
-                                  const SizedBox(height: 3),
-                                  Text(
-                                    n['body']!,
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: kTextGray,
-                                      fontFamily: 'Cairo',
-                                      height: 1.4,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                          ),
+                          12.hs,
+                          TextButton(
+                            onPressed: () => ref
+                                .read(notificationsListProvider.notifier)
+                                .refresh(),
+                            child: const Text(
+                              'إعادة المحاولة',
+                              style: TextStyle(fontFamily: 'Cairo', color: kGreen),
                             ),
-                            const SizedBox(width: 8),
-
-                            // Time
-                            Text(
-                              n['time']!,
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: kTextGray,
-                                fontFamily: 'Cairo',
-                              ),
-                            ),
-                          ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  data: (notifications) {
+                    if (notifications.isEmpty) {
+                      return const Center(
+                        child: Text(
+                          'لا توجد إشعارات بعد',
+                          style: TextStyle(fontFamily: 'Cairo', color: kTextGray),
                         ),
+                      );
+                    }
+
+                    return RefreshIndicator(
+                      color: kGreen,
+                      onRefresh: () =>
+                          ref.read(notificationsListProvider.notifier).refresh(),
+                      child: ListView.separated(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        itemCount: notifications.length,
+                        separatorBuilder: (_, __) => const Divider(
+                            color: kBorder, height: 1, indent: 20, endIndent: 20),
+                        itemBuilder: (context, i) {
+                          final n = notifications[i];
+                          return Dismissible(
+                            key: ValueKey(n.id),
+                            direction: DismissDirection.endToStart,
+                            background: Container(
+                              color: Colors.red.withOpacity(0.9),
+                              alignment: Alignment.centerLeft,
+                              padding: const EdgeInsets.symmetric(horizontal: 20),
+                              child: const Icon(Icons.delete_outline,
+                                  color: kWhite),
+                            ),
+                            onDismissed: (_) => ref
+                                .read(notificationsListProvider.notifier)
+                                .delete(n.id),
+                            child: InkWell(
+                              onTap: () {
+                                if (!n.isRead) {
+                                  ref
+                                      .read(notificationsListProvider.notifier)
+                                      .markRead(n.id);
+                                }
+                              },
+                              child: Container(
+                                color: n.isRead ? null : kGreen.withOpacity(0.05),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 20, vertical: 14),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Icon
+                                    Container(
+                                      width: 44,
+                                      height: 44,
+                                      decoration: BoxDecoration(
+                                        color: kGreen,
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Icon(
+                                        _iconForType(n.type),
+                                        color: kWhite,
+                                        size: 22,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+
+                                    // Content
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            n.title,
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w700,
+                                              color: kTextDark,
+                                              fontFamily: 'Cairo',
+                                            ),
+                                          ),
+                                          const SizedBox(height: 3),
+                                          Text(
+                                            n.body,
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              color: kTextGray,
+                                              fontFamily: 'Cairo',
+                                              height: 1.4,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+
+                                    // Time + unread dot
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      children: [
+                                        Text(
+                                          _formatRelativeTime(n.createdAt),
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            color: kTextGray,
+                                            fontFamily: 'Cairo',
+                                          ),
+                                        ),
+                                        if (!n.isRead) ...[
+                                          const SizedBox(height: 6),
+                                          Container(
+                                            width: 8,
+                                            height: 8,
+                                            decoration: const BoxDecoration(
+                                              color: kGreen,
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     );
                   },
@@ -138,5 +233,27 @@ class NotificationsScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  IconData _iconForType(String type) {
+    switch (type) {
+      case 'new_lesson':
+        return Icons.play_circle_outline;
+      case 'reply':
+        return Icons.chat_bubble_outline;
+      case 'exam':
+        return Icons.assignment_outlined;
+      default:
+        return Icons.notifications_outlined;
+    }
+  }
+
+  String _formatRelativeTime(DateTime? time) {
+    if (time == null) return '';
+    final diff = DateTime.now().difference(time);
+    if (diff.inMinutes < 1) return 'الآن';
+    if (diff.inMinutes < 60) return 'منذ ${diff.inMinutes} دقيقة';
+    if (diff.inHours < 24) return 'منذ ${diff.inHours} ساعة';
+    return 'منذ ${diff.inDays} يوم';
   }
 }

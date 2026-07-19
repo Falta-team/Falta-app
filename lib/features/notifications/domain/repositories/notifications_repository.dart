@@ -6,5 +6,15 @@ import 'package:falta_app/features/notifications/domain/entities/notifications_e
 /// (`notifications_repository_impl.dart`) and is the only
 /// place allowed to know about the actual data source (API, local DB, etc).
 abstract class NotificationsRepository {
-  Future<List<NotificationsEntity>> getAll();
+  /// `GET /notifications` — requires a Bearer token.
+  Future<List<NotificationsEntity>> getAll(String token);
+
+  /// `PUT /notifications/{id}/read` — requires a Bearer token.
+  Future<void> markRead(String id, String token);
+
+  /// `PUT /notifications/read-all` — requires a Bearer token.
+  Future<void> markAllRead(String token);
+
+  /// `DELETE /notifications/{id}` — requires a Bearer token.
+  Future<void> delete(String id, String token);
 }
