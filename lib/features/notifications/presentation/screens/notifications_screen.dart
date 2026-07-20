@@ -33,22 +33,28 @@ class NotificationsScreen extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'الاشعارات',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        color: kTextDark,
-                        fontFamily: 'Cairo',
-                      ),
-                    ),
                     GestureDetector(
                       onTap: () => Navigator.pop(context),
-                      child: const Icon(Icons.arrow_forward,
-                          color: kTextDark, size: 26),
+                      child: const Icon(
+                        Icons.arrow_forward,
+                        color: kTextDark,
+                        size: 26,
+                      ),
                     ),
+                    const Expanded(
+                      child: Text(
+                        'الاشعارات',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: kTextDark,
+                          fontFamily: 'Cairo',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 26),
                   ],
                 ),
               ),

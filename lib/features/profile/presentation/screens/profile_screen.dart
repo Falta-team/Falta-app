@@ -1,19 +1,224 @@
+import 'package:falta_app/core/theme/app_colors.dart';
+import 'package:falta_app/features/profile/data/repositories/profile_repository_impl.dart';
+import 'package:falta_app/features/profile/domain/entities/profile_entity.dart';
+import 'package:falta_app/features/profile/domain/usecases/get_profile.dart';
+import 'package:falta_app/features/profile/presentation/screens/about_screen.dart';
+import 'package:falta_app/features/profile/presentation/screens/edit_profile_screen.dart';
+import 'package:falta_app/features/profile/presentation/screens/privacy_screen.dart';
+import 'package:falta_app/features/profile/presentation/screens/support_screen.dart';
+import 'package:falta_app/features/profile/presentation/widgets/logout_dialog.dart';
+import 'package:falta_app/features/profile/presentation/widgets/profile_menu_item.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:google_fonts/google_fonts.dart';
 
-/// Main screen for the Profile feature.
-class ProfileScreen extends StatelessWidget {
+/// "حسابي" tab: avatar header + account menu (Figma node 1:23433).
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   static const String routeName = '/profile';
 
   @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  late final GetProfile _getProfile = GetProfile(ProfileRepositoryImpl());
+
+  ProfileEntity? _profile;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final profile = await _getProfile();
+    if (!mounted) return;
+    setState(() => _profile = profile);
+  }
+
+  Future<void> _openEditProfile() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const EditProfileScreen()),
+    );
+    await _load();
+  }
+
+  void _comingSoon() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('قريباً')),
+    );
+  }
+
+  Future<void> _logout() async {
+    final confirmed = await showLogoutDialog(context);
+    if (confirmed == true && mounted) {
+      Navigator.of(context)
+          .pushNamedAndRemoveUntil('/login', (route) => false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final profile = _profile;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profile'),
-      ),
-      body: const Center(
-        child: Text('Profile screen'),
+      backgroundColor: AppColors.white,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              const SizedBox(height: 16),
+
+              // ── Avatar + edit badge ─────────────────────────────────────
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  CircleAvatar(
+                    radius: 39,
+                    backgroundColor: AppColors.bgLight,
+                    child: const Icon(
+                      Icons.person,
+                      size: 40,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  PositionedDirectional(
+                    end: -4,
+                    bottom: -4,
+                    child: GestureDetector(
+                      onTap: _openEditProfile,
+                      child: Container(
+                        width: 28,
+                        height: 28,
+                        decoration: const BoxDecoration(
+                          color: AppColors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        padding: const EdgeInsets.all(3),
+                        child: SvgPicture.asset(
+                          'assets/icons/profile/ic_edit.svg',
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                profile?.fullName ?? '',
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Opacity(
+                opacity: 0.8,
+                child: Text(
+                  profile?.branch ?? '',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // ── Edit profile button ─────────────────────────────────────
+              SizedBox(
+                width: 136,
+                height: 32,
+                child: ElevatedButton(
+                  onPressed: _openEditProfile,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryBright,
+                    foregroundColor: AppColors.white,
+                    elevation: 0,
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(136, 32),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    'تعديل الملف الشخصي',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Divider(height: 1, thickness: 1, color: Color(0xFFEAEAEA)),
+
+              // ── Menu ────────────────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.fromLTRB(23, 16, 23, 24),
+                child: Column(
+                  children: [
+                    ProfileMenuItem(
+                      iconAsset: 'assets/icons/profile/ic_settings.svg',
+                      label: 'الاعدادات',
+                      onTap: () =>
+                          Navigator.of(context).pushNamed('/settings'),
+                    ),
+                    ProfileMenuItem(
+                      iconAsset: 'assets/icons/profile/ic_card.svg',
+                      iconSize: 24,
+                      label: 'البطاقات',
+                      onTap: _comingSoon,
+                    ),
+                    ProfileMenuItem(
+                      iconAsset: 'assets/icons/profile/ic_favorite.svg',
+                      label: 'المفضلة',
+                      onTap: () =>
+                          Navigator.of(context).pushNamed('/favorites'),
+                    ),
+                    ProfileMenuItem(
+                      iconAsset: 'assets/icons/profile/ic_history.svg',
+                      iconSize: 24,
+                      label: 'السجل',
+                      onTap: () =>
+                          Navigator.of(context).pushNamed('/history'),
+                    ),
+                    ProfileMenuItem(
+                      iconAsset: 'assets/icons/profile/ic_about.svg',
+                      label: 'حول التطبيق',
+                      onTap: () =>
+                          Navigator.of(context).pushNamed(AboutScreen.routeName),
+                    ),
+                    ProfileMenuItem(
+                      iconAsset: 'assets/icons/profile/ic_support.svg',
+                      label: 'الدعم الفني',
+                      onTap: () =>
+                          Navigator.of(context).pushNamed(SupportScreen.routeName),
+                    ),
+                    ProfileMenuItem(
+                      iconAsset: 'assets/icons/profile/ic_privacy.svg',
+                      iconSize: 20,
+                      label: 'سياسة الخصوصية',
+                      onTap: () =>
+                          Navigator.of(context).pushNamed(PrivacyScreen.routeName),
+                    ),
+                    ProfileMenuItem(
+                      iconAsset: 'assets/icons/profile/ic_logout.svg',
+                      iconSize: 20,
+                      label: 'تسجيل الخروج',
+                      showChevron: false,
+                      onTap: _logout,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -77,15 +77,13 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 60),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                  // RTL: start = يمين
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        Image.asset('assets/images/logo.png',
-                            width: 90, height: 70),
-                        const Spacer(),
                         Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             GestureDetector(
                               onTap: () => Navigator.pop(context),
@@ -100,6 +98,12 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
                           ],
+                        ),
+                        const Spacer(),
+                        Image.asset(
+                          'assets/images/logo.png',
+                          width: 90,
+                          height: 70,
                         ),
                       ],
                     ),
@@ -170,7 +174,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     14.hs,
                     Align(
-                      alignment: Alignment.centerRight,
+                      alignment: AlignmentDirectional.centerStart,
                       child: GestureDetector(
                         onTap: () => Navigator.of(context).push(
                           MaterialPageRoute(
@@ -195,6 +199,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
+                        const Text(
+                          'ليس لديك حساب؟ ',
+                          style: TextStyle(color: Colors.grey),
+                        ),
                         GestureDetector(
                           onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(
@@ -208,8 +216,6 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                         ),
-                        const Text(' ليس لديك حساب؟',
-                            style: TextStyle(color: Colors.grey)),
                       ],
                     ),
                     185.hs,

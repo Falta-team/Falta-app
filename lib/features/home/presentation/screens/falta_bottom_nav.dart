@@ -136,7 +136,7 @@ class _FaltaBottomNavigationScreenState
                 // Notification button
                 actions: [
                   Padding(
-                    padding: const EdgeInsets.only(left: 16),
+                    padding: const EdgeInsetsDirectional.only(end: 16),
                     child: GestureDetector(
                       onTap: () => Navigator.push(
                         context,

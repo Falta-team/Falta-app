@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 
 class AppColors {
   // Brand
-  static const primary = Color(0xFf44AE02);
+  static const primary = Color(0xFF44AE02);
+  static const primaryBright = Color(0xFF56B919);
+  static const optionCorrect = Color(0xFF37BD6B);
+  static const optionWrong = Color(0xFFE23B3B);
+  static const titleDark = Color(0xFF060606);
+  static const mutedLabel = Color(0x806A6D7C);
   static const primaryDark = Color(0xFF2563EB);
   static const secondary = Color(0xFF7C3AED);
   static const accent = Color(0xFF06B6D4);
