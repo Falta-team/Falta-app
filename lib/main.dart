@@ -9,7 +9,7 @@ import 'package:falta_app/features/auth/presentation/screens/register_screen.dar
 import 'package:falta_app/features/auth/presentation/screens/reset_password_screen.dart';
 import 'package:falta_app/features/courses/presentation/screens/course_detail_screen.dart';
 import 'package:falta_app/features/courses/presentation/screens/courses_screen.dart';
-import 'package:falta_app/features/courses/presentation/screens/instructors_screen.dart';
+import 'package:falta_app/features/courses/presentation/screens/instructors_screen.dart' hide CourseDetailScreen;
 import 'package:falta_app/features/exams/presentation/screens/exams_screen.dart';
 import 'package:falta_app/features/home/presentation/screens/home_screen.dart';
 import 'package:falta_app/features/notifications/presentation/screens/notifications_screen.dart';

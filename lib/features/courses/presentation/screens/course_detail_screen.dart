@@ -22,8 +22,7 @@ class CourseDetailScreen extends ConsumerStatefulWidget {
   static const String routeName = '/course-detail';
 
   @override
-  ConsumerState<CourseDetailScreen> createState() =>
-      _CourseDetailScreenState();
+  ConsumerState<CourseDetailScreen> createState() => _CourseDetailScreenState();
 }
 
 class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
@@ -202,7 +201,6 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
     await _playVideo(_videos[currentIndex + 1]);
   }
 
-
   /// Preloads the next video into cache in the background.
   /// Called right after a video starts playing so the next video is
   /// ready instantly when the user advances (or auto-advance fires).
@@ -218,7 +216,6 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
     VideoCacheManager().getSingleFile(nextUrl).catchError((_) {});
   }
 
-
   /// Progress bar with countdown timer.
   ///
   /// Shows:  [elapsed ◀──────●────── total]  remaining
@@ -228,8 +225,8 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
     return ValueListenableBuilder<VideoPlayerValue>(
       valueListenable: controller,
       builder: (_, value, __) {
-        final total     = value.duration;
-        final elapsed   = value.position;
+        final total = value.duration;
+        final elapsed = value.position;
         final remaining = total > elapsed ? total - elapsed : Duration.zero;
 
         final double progress = total.inMilliseconds > 0
@@ -280,10 +277,12 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
               // ── Scrub slider ─────────────────────────────────────────
               SliderTheme(
                 data: SliderTheme.of(context).copyWith(
-                  thumbShape:
-                  const RoundSliderThumbShape(enabledThumbRadius: 6),
-                  overlayShape:
-                  const RoundSliderOverlayShape(overlayRadius: 12),
+                  thumbShape: const RoundSliderThumbShape(
+                    enabledThumbRadius: 6,
+                  ),
+                  overlayShape: const RoundSliderOverlayShape(
+                    overlayRadius: 12,
+                  ),
                   trackHeight: 3,
                   activeTrackColor: AppColors.primary,
                   inactiveTrackColor: Colors.white24,
@@ -328,13 +327,18 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
       onSelected: _setQuality,
       color: Colors.black87,
       itemBuilder: (context) => _qualityOptions
-          .map((q) => PopupMenuItem(
-        value: q,
-        child: Text(
-          q,
-          style: const TextStyle(color: Colors.white, fontFamily: 'Cairo'),
-        ),
-      ))
+          .map(
+            (q) => PopupMenuItem(
+              value: q,
+              child: Text(
+                q,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontFamily: 'Cairo',
+                ),
+              ),
+            ),
+          )
           .toList(),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -356,13 +360,18 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
       onSelected: _setPlaybackSpeed,
       color: Colors.black87,
       itemBuilder: (context) => _speedOptions
-          .map((s) => PopupMenuItem(
-        value: s,
-        child: Text(
-          '${s}x',
-          style: const TextStyle(color: Colors.white, fontFamily: 'Cairo'),
-        ),
-      ))
+          .map(
+            (s) => PopupMenuItem(
+              value: s,
+              child: Text(
+                '${s}x',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontFamily: 'Cairo',
+                ),
+              ),
+            ),
+          )
           .toList(),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -387,7 +396,7 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
     // video the moment the list loads successfully.
     ref.listen<AsyncValue<List<VideoEntity>>>(
       courseVideosProvider(widget.courseId),
-          (previous, next) {
+      (previous, next) {
         final videos = next.asData?.value;
         if (videos == null) return;
         _videos = videos;
@@ -426,9 +435,8 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
                   ),
                   12.hs,
                   TextButton(
-                    onPressed: () => ref.invalidate(
-                      courseDetailsProvider(widget.courseId),
-                    ),
+                    onPressed: () =>
+                        ref.invalidate(courseDetailsProvider(widget.courseId)),
                     child: const Text(
                       'إعادة المحاولة',
                       style: TextStyle(
@@ -441,8 +449,7 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
               ),
             ),
           ),
-          data: (course) =>
-              _buildContent(context, course, videosAsync),
+          data: (course) => _buildContent(context, course, videosAsync),
         ),
       ),
     );
@@ -453,6 +460,7 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
     final controller = _videoController;
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: Colors.black,
       body: SafeArea(
         child: Stack(
@@ -490,8 +498,11 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
               right: 12,
               child: IconButton(
                 onPressed: _toggleFullScreen,
-                icon: const Icon(Icons.fullscreen_exit,
-                    color: Colors.white, size: 30),
+                icon: const Icon(
+                  Icons.fullscreen_exit,
+                  color: Colors.white,
+                  size: 30,
+                ),
               ),
             ),
 
@@ -518,9 +529,9 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
 
   // ── Video header (real player when a video is selected) ─────────────────
   Widget _buildVideoHeader(
-      CoursesEntity course,
-      AsyncValue<List<VideoEntity>> videosAsync,
-      ) {
+    CoursesEntity course,
+    AsyncValue<List<VideoEntity>> videosAsync,
+  ) {
     final controller = _videoController;
 
     // ✅ A video is loaded and ready → show the real player.
@@ -625,12 +636,12 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
               child: _videoLoading
                   ? const CircularProgressIndicator(color: Colors.white)
                   : Icon(
-                _videoError != null
-                    ? Icons.error_outline
-                    : Icons.play_circle_filled,
-                size: 56,
-                color: Colors.white,
-              ),
+                      _videoError != null
+                          ? Icons.error_outline
+                          : Icons.play_circle_filled,
+                      size: 56,
+                      color: Colors.white,
+                    ),
             ),
           ),
         ],
@@ -639,10 +650,10 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
   }
 
   Widget _buildContent(
-      BuildContext context,
-      CoursesEntity course,
-      AsyncValue<List<VideoEntity>> videosAsync,
-      ) {
+    BuildContext context,
+    CoursesEntity course,
+    AsyncValue<List<VideoEntity>> videosAsync,
+  ) {
     return Column(
       children: [
         // ── Dark Video Header ─────────────────────────────────────────
@@ -860,12 +871,14 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
               ),
               12.hs,
               TextButton(
-                onPressed: () => ref.invalidate(
-                  courseVideosProvider(widget.courseId),
-                ),
+                onPressed: () =>
+                    ref.invalidate(courseVideosProvider(widget.courseId)),
                 child: const Text(
                   'إعادة المحاولة',
-                  style: TextStyle(fontFamily: 'Cairo', color: AppColors.primary),
+                  style: TextStyle(
+                    fontFamily: 'Cairo',
+                    color: AppColors.primary,
+                  ),
                 ),
               ),
             ],
@@ -877,7 +890,10 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
           return const Center(
             child: Text(
               'لا يوجد فيديوهات لهذا الكورس بعد',
-              style: TextStyle(fontFamily: 'Cairo', color: AppColors.textSecondaryLight),
+              style: TextStyle(
+                fontFamily: 'Cairo',
+                color: AppColors.textSecondaryLight,
+              ),
             ),
           );
         }
@@ -907,7 +923,8 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
-                        isPlaying && (_videoController?.value.isPlaying ?? false)
+                        isPlaying &&
+                                (_videoController?.value.isPlaying ?? false)
                             ? Icons.pause
                             : Icons.play_arrow,
                         color: Colors.white,
@@ -994,57 +1011,55 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
 
     final commentsAsync = ref.watch(videoCommentsProvider(video.id));
 
-    return Column(
-      children: [
-        Expanded(
-          child: commentsAsync.when(
-            loading: () => const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            ),
-            error: (error, _) => Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      error.toString(),
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontFamily: 'Cairo',
-                        color: AppColors.textSecondaryLight,
-                      ),
-                    ),
-                    12.hs,
-                    TextButton(
-                      onPressed: () =>
-                          ref.invalidate(videoCommentsProvider(video.id)),
-                      child: const Text(
-                        'إعادة المحاولة',
-                        style: TextStyle(
-                            fontFamily: 'Cairo', color: AppColors.primary),
-                      ),
-                    ),
-                  ],
+    return Scaffold(
+      backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: true,
+      body: commentsAsync.when(
+        loading: () => const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+        error: (error, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  error.toString(),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontFamily: 'Cairo',
+                    color: AppColors.textSecondaryLight,
+                  ),
                 ),
-              ),
-            ),
-            data: (comments) {
-              if (comments.isEmpty) {
-                return const Center(
-                  child: Text(
-                    'لا توجد تعليقات بعد، كن أول من يعلق',
+                12.hs,
+                TextButton(
+                  onPressed: () =>
+                      ref.invalidate(videoCommentsProvider(video.id)),
+                  child: const Text(
+                    '\u0625\u0639\u0627\u062f\u0629 \u0627\u0644\u0645\u062d\u0627\u0648\u0644\u0629',
                     style: TextStyle(
                       fontFamily: 'Cairo',
-                      color: AppColors.textSecondaryLight,
+                      color: AppColors.primary,
                     ),
                   ),
-                );
-              }
-
-              return ListView.builder(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
+              ],
+            ),
+          ),
+        ),
+        data: (comments) => comments.isEmpty
+            ? const Center(
+                child: Text(
+                  '\u0644\u0627 \u062a\u0648\u062c\u062f \u062a\u0639\u0644\u064a\u0642\u0627\u062a \u0628\u0639\u062f\u060c \u0643\u0646 \u0623\u0648\u0644 \u0645\u0646 \u064a\u0639\u0644\u0642',
+                  style: TextStyle(
+                    fontFamily: 'Cairo',
+                    color: AppColors.textSecondaryLight,
+                  ),
+                ),
+              )
+            : ListView.builder(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
                 itemCount: comments.length,
                 itemBuilder: (context, i) {
                   final c = comments[i];
@@ -1053,7 +1068,6 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Avatar
                         CircleAvatar(
                           radius: 20,
                           backgroundColor: AppColors.primary.withOpacity(0.15),
@@ -1062,20 +1076,18 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
                               : null,
                           child: c.userAvatarUrl.isEmpty
                               ? Text(
-                            c.userName.isNotEmpty
-                                ? c.userName.substring(0, 1)
-                                : '؟',
-                            style: const TextStyle(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w800,
-                              fontFamily: 'Cairo',
-                            ),
-                          )
+                                  c.userName.isNotEmpty
+                                      ? c.userName.substring(0, 1)
+                                      : '\u061f',
+                                  style: const TextStyle(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w800,
+                                    fontFamily: 'Cairo',
+                                  ),
+                                )
                               : null,
                         ),
                         10.ws,
-
-                        // Comment body
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1098,8 +1110,6 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
                                 ),
                               ),
                               8.hs,
-
-                              // Likes + relative time
                               Row(
                                 children: [
                                   const Icon(
@@ -1129,8 +1139,6 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
                                   ],
                                 ],
                               ),
-
-                              // Divider
                               8.hs,
                               const Divider(color: AppColors.border, height: 1),
                             ],
@@ -1140,55 +1148,55 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
                     ),
                   );
                 },
-              );
-            },
-          ),
+              ),
+      ),
+      bottomNavigationBar: Padding(
+        padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          top: 8,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 12,
         ),
-
-        // ── Composer ──────────────────────────────────────────────────
-        SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _commentController,
-                    textDirection: TextDirection.rtl,
-                    style: const TextStyle(fontFamily: 'Cairo', fontSize: 13),
-                    decoration: InputDecoration(
-                      hintText: 'أضف تعليقاً...',
-                      hintStyle: const TextStyle(
-                        fontFamily: 'Cairo',
-                        color: AppColors.textSecondaryLight,
-                        fontSize: 13,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 10),
-                      filled: true,
-                      fillColor: AppColors.background,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
+        child: Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _commentController,
+                textDirection: TextDirection.rtl,
+                style: const TextStyle(fontFamily: 'Cairo', fontSize: 13),
+                decoration: InputDecoration(
+                  hintText:
+                      '\u0623\u0636\u0641 \u062a\u0639\u0644\u064a\u0642\u0627\u064b...',
+                  hintStyle: const TextStyle(
+                    fontFamily: 'Cairo',
+                    color: AppColors.textSecondaryLight,
+                    fontSize: 13,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                  filled: true,
+                  fillColor: AppColors.background,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(24),
+                    borderSide: BorderSide.none,
                   ),
                 ),
-                8.ws,
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: AppColors.primary,
-                  child: IconButton(
-                    icon: const Icon(Icons.send, color: Colors.white, size: 18),
-                    onPressed: () => _submitComment(video.id),
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
+            8.ws,
+            CircleAvatar(
+              radius: 20,
+              backgroundColor: AppColors.primary,
+              child: IconButton(
+                icon: const Icon(Icons.send, color: Colors.white, size: 18),
+                onPressed: () => _submitComment(video.id),
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
