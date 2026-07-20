@@ -14,7 +14,9 @@ class CoursesEntity {
     required this.academicTrack,
     required this.difficultyLevel,
     required this.lessonsCount,
+    required this.videoCount,
     required this.rating,
+    required this.totalDuration,
     required this.price,
     required this.isPaid,
   });
@@ -29,7 +31,9 @@ class CoursesEntity {
   final String academicTrack;
   final String difficultyLevel;
   final int lessonsCount;
+  final int videoCount;
   final double rating;
+  final int totalDuration;
   final double price;
   final bool isPaid;
 }

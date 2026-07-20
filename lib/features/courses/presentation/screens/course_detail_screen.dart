@@ -5,6 +5,8 @@ import 'package:falta_app/features/courses/domain/entities/courses_entity.dart';
 import 'package:falta_app/features/courses/domain/entities/video_entity.dart';
 import 'package:falta_app/features/courses/domain/providers/courses_provider.dart';
 import 'package:falta_app/utils/extensions/extensions.dart';
+import 'package:falta_app/utils/video/video_cache_manager.dart';
+import 'package:falta_app/utils/video/video_player_controller_factory.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -133,9 +135,10 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
 
     await oldController?.dispose();
 
-    final controller = VideoPlayerController.networkUrl(
-      Uri.parse(video.videoUrl),
-    );
+    // ✅ FIX: Use VideoControllerFactory — returns cached file if available,
+    // falls back to network and caches in background for next time.
+    // Per graduation report NFR1.1: video start < 3 s on 4G.
+    final controller = await VideoControllerFactory.create(video.videoUrl);
 
     try {
       await controller.initialize();
@@ -150,6 +153,9 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
         _videoLoading = false;
       });
       controller.play();
+
+      // ✅ Preload next video in background so it starts instantly
+      _preloadNextVideo(video);
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -194,6 +200,111 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
     }
 
     await _playVideo(_videos[currentIndex + 1]);
+  }
+
+
+  /// Preloads the next video into cache in the background.
+  /// Called right after a video starts playing so the next video is
+  /// ready instantly when the user advances (or auto-advance fires).
+  /// Per graduation report §5.4.2: "Recently viewed content cached."
+  void _preloadNextVideo(VideoEntity currentVideo) {
+    final currentIndex = _videos.indexWhere((v) => v.id == currentVideo.id);
+    if (currentIndex == -1 || currentIndex >= _videos.length - 1) return;
+
+    final nextUrl = _videos[currentIndex + 1].videoUrl;
+    if (nextUrl.isEmpty) return;
+
+    // Fire and forget — caches the file without blocking the UI
+    VideoCacheManager().getSingleFile(nextUrl).catchError((_) {});
+  }
+
+
+  /// Progress bar with countdown timer.
+  ///
+  /// Shows:  [elapsed ◀──────●────── total]  remaining
+  ///
+  /// The remaining time counts down as the video plays.
+  Widget _buildProgressBar(VideoPlayerController controller) {
+    return ValueListenableBuilder<VideoPlayerValue>(
+      valueListenable: controller,
+      builder: (_, value, __) {
+        final total     = value.duration;
+        final elapsed   = value.position;
+        final remaining = total > elapsed ? total - elapsed : Duration.zero;
+
+        final double progress = total.inMilliseconds > 0
+            ? (elapsed.inMilliseconds / total.inMilliseconds).clamp(0.0, 1.0)
+            : 0.0;
+
+        return Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.bottomCenter,
+              end: Alignment.topCenter,
+              colors: [Colors.black87, Colors.transparent],
+            ),
+          ),
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // ── Time row: elapsed  ·  remaining ──────────────────────
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Elapsed
+                  Text(
+                    _formatDuration(elapsed.inSeconds),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: 'Cairo',
+                    ),
+                  ),
+                  // Remaining (counts down) — highlighted in green
+                  Text(
+                    '-${_formatDuration(remaining.inSeconds)}',
+                    style: const TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      fontFamily: 'Cairo',
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 4),
+
+              // ── Scrub slider ─────────────────────────────────────────
+              SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  thumbShape:
+                  const RoundSliderThumbShape(enabledThumbRadius: 6),
+                  overlayShape:
+                  const RoundSliderOverlayShape(overlayRadius: 12),
+                  trackHeight: 3,
+                  activeTrackColor: AppColors.primary,
+                  inactiveTrackColor: Colors.white24,
+                  thumbColor: AppColors.primary,
+                  overlayColor: AppColors.primary.withOpacity(0.25),
+                ),
+                child: Slider(
+                  value: progress,
+                  onChanged: (v) {
+                    final seekTo = Duration(
+                      milliseconds: (v * total.inMilliseconds).toInt(),
+                    );
+                    controller.seekTo(seekTo);
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _setPlaybackSpeed(double speed) async {
@@ -391,21 +502,13 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
               child: _buildSpeedButton(color: Colors.white),
             ),
 
-            // Progress bar
+            // ✅ Timer + scrub bar (fullscreen)
             if (controller != null && controller.value.isInitialized)
               Positioned(
-                left: 16,
-                right: 16,
-                bottom: 12,
-                child: VideoProgressIndicator(
-                  controller,
-                  allowScrubbing: true,
-                  colors: const VideoProgressColors(
-                    playedColor: AppColors.primary,
-                    bufferedColor: Colors.white38,
-                    backgroundColor: Colors.white24,
-                  ),
-                ),
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: _buildProgressBar(controller),
               ),
           ],
         ),
@@ -450,7 +553,7 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
 
               // Quality / speed / fullscreen controls
               Positioned(
-                top: MediaQuery.of(context).padding.top + 8,
+                top: MediaQuery.of(context).padding.top + 16,
                 right: 16,
                 child: Row(
                   children: [
@@ -470,20 +573,12 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
                 ),
               ),
 
+              // ✅ Timer + scrub bar
               Positioned(
                 left: 0,
                 right: 0,
                 bottom: 0,
-                child: VideoProgressIndicator(
-                  controller,
-                  allowScrubbing: true,
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                  colors: const VideoProgressColors(
-                    playedColor: AppColors.primary,
-                    bufferedColor: Colors.white38,
-                    backgroundColor: Colors.white24,
-                  ),
-                ),
+                child: _buildProgressBar(controller),
               ),
             ],
           ),
@@ -651,7 +746,7 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
                           ),
                           4.ws,
                           Text(
-                            '${course.lessonsCount} فيديو',
+                            '${course.videoCount} فيديو',
                             style: const TextStyle(
                               fontSize: 12,
                               color: AppColors.textSecondaryLight,
@@ -666,7 +761,7 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
                           ),
                           4.ws,
                           Text(
-                            '${course.lessonsCount} س',
+                            '${_formatDuration(course.totalDuration)}',
                             style: const TextStyle(
                               fontSize: 12,
                               color: AppColors.textSecondaryLight,

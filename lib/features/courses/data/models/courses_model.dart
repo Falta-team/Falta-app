@@ -20,8 +20,9 @@ class CoursesModel extends CoursesEntity {
     required super.difficultyLevel,
     required super.lessonsCount,
     required super.rating,
+    required super.totalDuration,
     required super.price,
-    required super.isPaid,
+    required super.isPaid, required super.videoCount,
   });
 
   factory CoursesModel.fromJson(Map<String, dynamic> json) {
@@ -52,7 +53,9 @@ class CoursesModel extends CoursesEntity {
       academicTrack: json['academicTrack'] as String? ?? '',
       difficultyLevel: json['difficultyLevel'] as String? ?? '',
       lessonsCount: (json['lessonsCount'] as num?)?.toInt() ?? 0,
-      rating: (json['rating'] as num?)?.toDouble() ?? 4.5,
+      videoCount: (json['videoCount'] as num?)?.toInt() ?? 0,
+      rating: (json['rating'] as num?)?.toDouble() ??0,
+      totalDuration: (json['totalDuration'] as num?)?.toInt() ??0,
       price: priceRaw?.toDouble() ?? 70.0,
       isPaid: json['isPaid'] as bool? ?? ((priceRaw ?? 0) > 0),
     );
@@ -70,7 +73,9 @@ class CoursesModel extends CoursesEntity {
       'academicTrack': academicTrack,
       'difficultyLevel': difficultyLevel,
       'lessonsCount': lessonsCount,
+      'videoCount': videoCount,
       'rating': rating,
+      'totalDuration': totalDuration,
       'price': price,
       'isPaid': isPaid,
     };
