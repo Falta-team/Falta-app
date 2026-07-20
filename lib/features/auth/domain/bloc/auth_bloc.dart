@@ -1,19 +1,15 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:falta_app/core/pref/shared_pref_controller.dart';
 import 'package:falta_app/features/auth/data/auth_api_controller.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 part 'auth_event.dart';
 part 'auth_state.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final AuthApiController _api;
-
-  // SharedPreferences keys
-  static const String _keyAccessToken  = 'access_token';
-  static const String _keyRefreshToken = 'refresh_token';
-  static const String _keyUserData     = 'user_data';
+  final SharedPrefController _pref = SharedPrefController();
 
   AuthBloc({AuthApiController? api})
       : _api = api ?? AuthApiController(),
@@ -30,23 +26,38 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   // ── Check Auth on App Start ──────────────────────────────────────────────
   Future<void> _onCheckAuth(
       CheckAuthEvent event, Emitter<AuthState> emit) async {
-    final prefs = await SharedPreferences.getInstance();
-    final accessToken  = prefs.getString(_keyAccessToken);
-    final refreshToken = prefs.getString(_keyRefreshToken);
 
-    if (accessToken == null || refreshToken == null) {
+    if (!_pref.isLoggedIn || _pref.refreshToken.isEmpty) {
       emit(const NotAuthenticatedState());
       return;
     }
 
-    // Try refreshing the token to validate session
-    final result = await _api.refreshToken(refreshToken: refreshToken);
+    // جرّب تجدد التوكن
+    final result = await _api.refreshToken(refreshToken: _pref.refreshToken);
 
     if (result.success && result.data != null) {
-      await _saveTokens(result.data!);
-      emit(AlreadyAuthenticatedState(result.data!));
+      // ⚠️ endpoint الـ refresh-token ممكن يرجّع فقط accessToken جديد
+      // من دون refreshToken/user (شي شائع بالـ APIs يلي بتعمل rotation
+      // بس مش بكل مرة). إذا رجعوا فاضيين، لازم نحافظ على القيم القديمة
+      // بدل ما نمسحها فوق بعضها بقيمة فاضية.
+      final newRefreshToken = result.data!.refreshToken.isNotEmpty
+          ? result.data!.refreshToken
+          : _pref.refreshToken;
+      final newUser =
+      result.data!.user.isNotEmpty ? result.data!.user : _pref.toUserMap();
+
+      await _pref.saveSession(
+        accessToken:  result.data!.accessToken,
+        refreshToken: newRefreshToken,
+        user:         newUser,
+      );
+      emit(AlreadyAuthenticatedState(AuthTokens(
+        accessToken:  result.data!.accessToken,
+        refreshToken: newRefreshToken,
+        user:         newUser,
+      )));
     } else {
-      await _clearTokens();
+      await _pref.clear();
       emit(const NotAuthenticatedState());
     }
   }
@@ -62,7 +73,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
 
     if (result.success && result.data != null) {
-      await _saveTokens(result.data!);
+      // ✅ احفظ كل البيانات مرة وحدة
+      await _pref.saveSession(
+        accessToken:  result.data!.accessToken,
+        refreshToken: result.data!.refreshToken,
+        user:         result.data!.user,
+      );
       emit(LoginSuccessState(result.data!));
     } else {
       emit(LoginFailureState(result.error ?? 'حدث خطأ غير متوقع'));
@@ -73,7 +89,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   Future<void> _onRegister(
       RegisterEvent event, Emitter<AuthState> emit) async {
     emit(const AuthLoadingState());
-
     final result = await _api.register(
       phoneNumber:    event.phoneNumber,
       firstName:      event.firstName,
@@ -81,7 +96,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       password:       event.password,
       academicBranch: event.academicBranch,
     );
-
     if (result.success) {
       emit(RegisterSuccessState(event.phoneNumber));
     } else {
@@ -93,11 +107,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   Future<void> _onForgotPassword(
       ForgotPasswordEvent event, Emitter<AuthState> emit) async {
     emit(const AuthLoadingState());
-
-    final result = await _api.forgotPassword(
-      phoneNumber: event.phoneNumber,
-    );
-
+    final result = await _api.forgotPassword(phoneNumber: event.phoneNumber);
     if (result.success) {
       emit(ForgotPasswordSuccessState(event.phoneNumber));
     } else {
@@ -109,12 +119,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   Future<void> _onVerifyOtp(
       VerifyOtpEvent event, Emitter<AuthState> emit) async {
     emit(const AuthLoadingState());
-
     final result = await _api.verifyOtp(
       phoneNumber: event.phoneNumber,
       code:        event.code,
     );
-    print(event.code);
     if (result.success) {
       emit(VerifyOtpSuccessState(
         phoneNumber: event.phoneNumber,
@@ -130,13 +138,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   Future<void> _onResetPassword(
       ResetPasswordEvent event, Emitter<AuthState> emit) async {
     emit(const AuthLoadingState());
-
     final result = await _api.resetPassword(
       phoneNumber: event.phoneNumber,
       code:        event.code,
       newPassword: event.newPassword,
     );
-
     if (result.success) {
       emit(const ResetPasswordSuccessState());
     } else {
@@ -148,37 +154,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   Future<void> _onLogout(
       LogoutEvent event, Emitter<AuthState> emit) async {
     emit(const AuthLoadingState());
-
-    final prefs        = await SharedPreferences.getInstance();
-    final accessToken  = prefs.getString(_keyAccessToken)  ?? '';
-    final refreshToken = prefs.getString(_keyRefreshToken) ?? '';
-
     await _api.logout(
-      refreshToken: refreshToken,
-      accessToken:  accessToken,
+      accessToken:  _pref.accessToken,
+      refreshToken: _pref.refreshToken,
     );
-
-    await _clearTokens();
+    await _pref.clear();
     emit(const LogoutSuccessState());
   }
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
-  Future<void> _saveTokens(AuthTokens tokens) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keyAccessToken,  tokens.accessToken);
-    await prefs.setString(_keyRefreshToken, tokens.refreshToken);
-  }
-
-  Future<void> _clearTokens() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_keyAccessToken);
-    await prefs.remove(_keyRefreshToken);
-    await prefs.remove(_keyUserData);
-  }
-
-  // ── Public getter for access token (used in other BLoCs) ─────────────────
-  Future<String?> getAccessToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_keyAccessToken);
-  }
+  // ── Public getter (backward compat) ──────────────────────────────────────
+  Future<String?> getAccessToken() async => _pref.accessToken.isEmpty
+      ? null
+      : _pref.accessToken;
 }

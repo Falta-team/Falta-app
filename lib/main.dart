@@ -1,3 +1,4 @@
+import 'package:falta_app/core/pref/shared_pref_controller.dart';
 import 'package:falta_app/core/theme/app_colors.dart';
 import 'package:falta_app/core/theme/app_theme.dart';
 import 'package:falta_app/features/ai/presentation/screens/ai_screen.dart';
@@ -15,12 +16,13 @@ import 'package:falta_app/features/exams/presentation/screens/exam_units_screen.
 import 'package:falta_app/features/exams/presentation/screens/exams_screen.dart';
 import 'package:falta_app/features/exams/presentation/screens/past_exam_detail_screen.dart';
 import 'package:falta_app/features/exams/presentation/screens/past_exams_archive_screen.dart';
-import 'package:falta_app/features/home/presentation/screens/home_screen.dart';
-import 'package:falta_app/features/notifications/presentation/screens/notifications_screen.dart';
-import 'package:falta_app/features/onboarding/presentation/screens/onboarding_screen.dart';
-import 'package:falta_app/features/onboarding/service/onboarding_service.dart';
 import 'package:falta_app/features/history/presentation/screens/history_detail_screen.dart';
 import 'package:falta_app/features/history/presentation/screens/history_subjects_screen.dart';
+import 'package:falta_app/features/home/presentation/screens/home_screen.dart';
+import 'package:falta_app/features/notifications/presentation/screens/notifications_screen.dart';
+import 'package:falta_app/features/notifications/service/local_notifications_service.dart';
+import 'package:falta_app/features/onboarding/presentation/screens/onboarding_screen.dart';
+import 'package:falta_app/features/onboarding/service/onboarding_service.dart';
 import 'package:falta_app/features/profile/presentation/screens/about_screen.dart';
 import 'package:falta_app/features/profile/presentation/screens/edit_profile_screen.dart';
 import 'package:falta_app/features/profile/presentation/screens/favorites_screen.dart';
@@ -34,7 +36,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,8 +46,9 @@ Future<void> main() async {
     ),
   );
 
-  await SharedPreferences.getInstance();
-  final bool isFirstTime = await OnboardingService().isFirstLaunch();
+  await SharedPrefController().initPreferences();
+  await LocalNotificationsService().init();
+  final isFirstTime = await OnboardingService().isFirstLaunch();
 
   runApp(
     ProviderScope(
@@ -57,9 +59,9 @@ Future<void> main() async {
 }
 
 class MyApp extends StatelessWidget {
-  final bool isFirstTime;
-
   const MyApp({super.key, required this.isFirstTime});
+
+  final bool isFirstTime;
 
   @override
   Widget build(BuildContext context) {
@@ -120,8 +122,7 @@ class MyApp extends StatelessWidget {
           },
           '/exam-units': (context) {
             final args = ModalRoute.of(context)?.settings.arguments;
-            final title =
-                args is String && args.isNotEmpty ? args : 'الرياضيات';
+            final title = args is String && args.isNotEmpty ? args : 'الرياضيات';
             return ExamUnitsScreen(subjectTitle: title);
           },
           '/exam-session': (context) {
