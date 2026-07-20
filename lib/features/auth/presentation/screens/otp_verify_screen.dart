@@ -159,7 +159,11 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> {
                     16.hs,
                     GestureDetector(
                       onTap: () => Navigator.pop(context),
-                      child: Icon(Icons.arrow_back, color: textColor, size: 28),
+                      child: Icon(
+                        Icons.arrow_forward,
+                        color: textColor,
+                        size: 28,
+                      ),
                     ),
                     40.hs,
                     RichText(

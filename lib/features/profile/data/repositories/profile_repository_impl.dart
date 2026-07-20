@@ -1,18 +1,45 @@
-import 'package:falta_app/features/profile/data/models/profile_model.dart';
+import 'package:falta_app/features/profile/data/sources/profile_local_data_source.dart';
+import 'package:falta_app/features/profile/domain/entities/app_settings_entity.dart';
+import 'package:falta_app/features/profile/domain/entities/favorite_entities.dart';
 import 'package:falta_app/features/profile/domain/entities/profile_entity.dart';
 import 'package:falta_app/features/profile/domain/repositories/profile_repository.dart';
 
-/// Concrete implementation of [ProfileRepository].
-///
-/// Replace the TODOs below with real calls to your API client / local
-/// storage / Firebase, etc.
+/// Concrete implementation of [ProfileRepository] backed by a local
+/// mock data source until the backend endpoints are available.
 class ProfileRepositoryImpl implements ProfileRepository {
-  const ProfileRepositoryImpl();
+  ProfileRepositoryImpl({ProfileLocalDataSource? dataSource})
+      : _dataSource = dataSource ?? ProfileLocalDataSource();
+
+  final ProfileLocalDataSource _dataSource;
 
   @override
-  Future<List<ProfileEntity>> getAll() async {
-    // TODO(falta_app): replace with a real data source call.
-    final List<ProfileModel> rawData = <ProfileModel>[];
-    return rawData;
+  Future<ProfileEntity> getProfile() => _dataSource.fetchProfile();
+
+  @override
+  Future<ProfileEntity> updateProfile({
+    required String fullName,
+    required String countryCode,
+    required String phone,
+  }) {
+    return _dataSource.updateProfile(
+      fullName: fullName,
+      countryCode: countryCode,
+      phone: phone,
+    );
   }
+
+  @override
+  Future<AppSettingsEntity> getSettings() => _dataSource.fetchSettings();
+
+  @override
+  Future<AppSettingsEntity> saveSettings(AppSettingsEntity settings) =>
+      _dataSource.saveSettings(settings);
+
+  @override
+  Future<List<FavoriteTeacherEntity>> getFavoriteTeachers() =>
+      _dataSource.fetchFavoriteTeachers();
+
+  @override
+  Future<List<FavoriteLessonEntity>> getFavoriteLessons() =>
+      _dataSource.fetchFavoriteLessons();
 }

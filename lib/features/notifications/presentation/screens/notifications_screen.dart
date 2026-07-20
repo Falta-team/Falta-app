@@ -6,12 +6,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 class NotificationsScreen extends ConsumerWidget {
   const NotificationsScreen({super.key});
 
-  static const Color kBg       = Color(0xFFF3F9FF);
-  static const Color kGreen    = Color(0xFF44AE02);
+  static const Color kBg = Color(0xFFF3F9FF);
+  static const Color kGreen = Color(0xFF44AE02);
   static const Color kTextDark = Color(0xFF1A202C);
   static const Color kTextGray = Color(0xFF64748B);
-  static const Color kBorder   = Color(0xFFE2E8F0);
-  static const Color kWhite    = Color(0xFFFFFFFF);
+  static const Color kBorder = Color(0xFFE2E8F0);
+  static const Color kWhite = Color(0xFFFFFFFF);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -25,50 +25,42 @@ class NotificationsScreen extends ConsumerWidget {
           textDirection: TextDirection.rtl,
           child: Column(
             children: [
-              // ── Top Bar ──────────────────────────────────────────────────
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     GestureDetector(
                       onTap: () => Navigator.pop(context),
-                      child: const Icon(Icons.arrow_forward,
-                          color: kTextDark, size: 26),
+                      child: const Icon(Icons.arrow_forward, color: kTextDark, size: 26),
                     ),
-                    const Text(
-                      'الاشعارات',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        color: kTextDark,
-                        fontFamily: 'Cairo',
+                    const Expanded(
+                      child: Text(
+                        'الاشعارات',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: kTextDark,
+                          fontFamily: 'Cairo',
+                        ),
                       ),
                     ),
-                    // Enable/disable local notifications for new lessons
-                    // or replies (persisted via SharedPrefController).
-                    Row(
-                      children: [
-                        Switch(
-                          value: notificationsEnabled,
-                          activeThumbColor: kGreen,
-                          onChanged: (value) => ref
-                              .read(notificationsEnabledProvider.notifier)
-                              .toggle(value),
-                        ),
-                      ],
+                    Switch(
+                      value: notificationsEnabled,
+                      activeThumbColor: kGreen,
+                      onChanged: (value) {
+                        ref.read(notificationsEnabledProvider.notifier).toggle(value);
+                      },
                     ),
                   ],
                 ),
               ),
-
               const Divider(color: kBorder, height: 1),
-
-              // ── List ─────────────────────────────────────────────────────
               Expanded(
                 child: notificationsAsync.when(
-                  loading: () =>
-                  const Center(child: CircularProgressIndicator(color: kGreen)),
+                  loading: () => const Center(
+                    child: CircularProgressIndicator(color: kGreen),
+                  ),
                   error: (error, _) => Center(
                     child: Padding(
                       padding: const EdgeInsets.all(24),
@@ -115,22 +107,24 @@ class NotificationsScreen extends ConsumerWidget {
                         padding: const EdgeInsets.symmetric(vertical: 8),
                         itemCount: notifications.length,
                         separatorBuilder: (_, __) => const Divider(
-                            color: kBorder, height: 1, indent: 20, endIndent: 20),
+                          color: kBorder,
+                          height: 1,
+                          indent: 20,
+                          endIndent: 20,
+                        ),
                         itemBuilder: (context, i) {
                           final n = notifications[i];
                           return Dismissible(
                             key: ValueKey(n.id),
                             direction: DismissDirection.endToStart,
                             background: Container(
-                              color: Colors.red.withOpacity(0.9),
+                              color: Colors.red.withValues(alpha: 0.9),
                               alignment: Alignment.centerLeft,
                               padding: const EdgeInsets.symmetric(horizontal: 20),
-                              child: const Icon(Icons.delete_outline,
-                                  color: kWhite),
+                              child: const Icon(Icons.delete_outline, color: kWhite),
                             ),
-                            onDismissed: (_) => ref
-                                .read(notificationsListProvider.notifier)
-                                .delete(n.id),
+                            onDismissed: (_) =>
+                                ref.read(notificationsListProvider.notifier).delete(n.id),
                             child: InkWell(
                               onTap: () {
                                 if (!n.isRead) {
@@ -140,13 +134,14 @@ class NotificationsScreen extends ConsumerWidget {
                                 }
                               },
                               child: Container(
-                                color: n.isRead ? null : kGreen.withOpacity(0.05),
+                                color: n.isRead ? null : kGreen.withValues(alpha: 0.05),
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 20, vertical: 14),
+                                  horizontal: 20,
+                                  vertical: 14,
+                                ),
                                 child: Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    // Icon
                                     Container(
                                       width: 44,
                                       height: 44,
@@ -161,12 +156,9 @@ class NotificationsScreen extends ConsumerWidget {
                                       ),
                                     ),
                                     const SizedBox(width: 12),
-
-                                    // Content
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                        crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Text(
                                             n.title,
@@ -191,8 +183,6 @@ class NotificationsScreen extends ConsumerWidget {
                                       ),
                                     ),
                                     const SizedBox(width: 8),
-
-                                    // Time + unread dot
                                     Column(
                                       crossAxisAlignment: CrossAxisAlignment.end,
                                       children: [

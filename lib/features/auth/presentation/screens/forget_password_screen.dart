@@ -81,7 +81,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             children: [
                               GestureDetector(
                                 onTap: () => Navigator.pop(context),
-                                child: const Icon(Icons.arrow_back),
+                                child: const Icon(Icons.arrow_forward),
                               ),
                               36.hs,
                               Text(

@@ -37,7 +37,7 @@ ThemeData buildFaltaTheme() {
   return ThemeData(
     useMaterial3: true,
     fontFamily: GoogleFonts.cairo().fontFamily,
-    scaffoldBackgroundColor: Colors.white,
+    scaffoldBackgroundColor: AppColors.backgroundAppColor,
     colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(

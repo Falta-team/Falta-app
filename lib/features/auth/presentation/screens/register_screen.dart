@@ -94,16 +94,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(20),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                  // RTL: start = يمين
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     20.hs,
                     Row(
                       children: [
-                        Image.asset("assets/images/logo.png",
-                            width: 90, height: 70),
-                        const Spacer(),
                         Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             GestureDetector(
                               onTap: () => Navigator.pop(context),
@@ -111,13 +109,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                             36.hs,
                             Text(
-                              "إنشاء حساب",
+                              'إنشاء حساب',
                               style: GoogleFonts.inter(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                           ],
+                        ),
+                        const Spacer(),
+                        Image.asset(
+                          'assets/images/logo.png',
+                          width: 90,
+                          height: 70,
                         ),
                       ],
                     ),
