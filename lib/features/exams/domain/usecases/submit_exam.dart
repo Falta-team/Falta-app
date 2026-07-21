@@ -1,24 +1,28 @@
 import 'package:falta_app/features/exams/domain/entities/exam_question_entity.dart';
 import 'package:falta_app/features/exams/domain/entities/exam_result_entity.dart';
+import 'package:falta_app/features/exams/domain/repositories/exams_repository.dart';
 
+/// Use case that submits the student's answers
+/// (`POST /exams/{examId}/submit`, requires a Bearer token) and returns
+/// the graded result.
 class SubmitExam {
-  const SubmitExam();
+  const SubmitExam(this._repository);
 
-  ExamResultEntity call(List<ExamQuestionEntity> questions) {
-    final score = questions.where((q) => q.isCorrect).length;
-    final total = questions.length;
-    final ratio = total == 0 ? 0.0 : score / total;
-    final message = ratio >= 0.7
-        ? 'أحسنت'
-        : ratio >= 0.4
-            ? 'جيد'
-            : 'حاول مرة أخرى';
+  final ExamsRepository _repository;
 
-    return ExamResultEntity(
-      score: score,
-      total: total,
-      message: message,
-      questions: questions,
+  Future<ExamResultEntity> call({
+    required String examId,
+    required String attemptId,
+    required int timeTakenSeconds,
+    required List<ExamQuestionEntity> answeredQuestions,
+    required String token,
+  }) {
+    return _repository.submitExam(
+      examId: examId,
+      attemptId: attemptId,
+      timeTakenSeconds: timeTakenSeconds,
+      answeredQuestions: answeredQuestions,
+      token: token,
     );
   }
 }

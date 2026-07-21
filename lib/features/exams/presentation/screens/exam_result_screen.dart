@@ -12,11 +12,13 @@ class ExamResultScreen extends StatefulWidget {
   const ExamResultScreen({
     required this.result,
     super.key,
+    this.subjectTitle = 'الرياضيات',
   });
 
   static const String routeName = '/exam-result';
 
   final ExamResultEntity result;
+  final String subjectTitle;
 
   @override
   State<ExamResultScreen> createState() => _ExamResultScreenState();
@@ -29,10 +31,10 @@ class _ExamResultScreenState extends State<ExamResultScreen> {
 
   ExamOptionVisual _visualFor(ExamQuestionEntity question, String optionId) {
     final option = question.options.firstWhere((o) => o.id == optionId);
+    // الإجابة الصحيحة دايماً خضراء
     if (option.isCorrect) return ExamOptionVisual.correct;
-    if (question.selectedOptionId == optionId && !option.isCorrect) {
-      return ExamOptionVisual.wrong;
-    }
+    // الإجابة اللي اختارها الطالب وهي خاطئة → حمراء
+    if (question.selectedOptionId == optionId) return ExamOptionVisual.wrong;
     return ExamOptionVisual.idle;
   }
 
@@ -41,11 +43,14 @@ class _ExamResultScreenState extends State<ExamResultScreen> {
   }
 
   void _retake() {
+    // ارجع لشاشة ExamUnitsScreen بنفس المادة عشان يختار نفس الاختبار أو غيره
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute<void>(
-        builder: (_) => const ExamUnitsScreen(),
+        builder: (_) => ExamUnitsScreen(
+          subjectTitle: widget.subjectTitle,
+        ),
       ),
-      (route) => route.settings.name == '/home' || route.isFirst,
+          (route) => route.settings.name == '/home' || route.isFirst,
     );
   }
 
@@ -109,30 +114,30 @@ class _ExamResultScreenState extends State<ExamResultScreen> {
                       ),
                       child: _filtered.isEmpty
                           ? Padding(
-                              padding: const EdgeInsets.all(24),
-                              child: Text(
-                                'لا توجد أسئلة في هذا التصنيف',
-                                textAlign: TextAlign.center,
-                                style: GoogleFonts.cairo(
-                                  fontSize: 14,
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                            )
+                        padding: const EdgeInsets.all(24),
+                        child: Text(
+                          'لا توجد أسئلة في هذا التصنيف',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.cairo(
+                            fontSize: 14,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      )
                           : Column(
-                              children: [
-                                for (var i = 0; i < _filtered.length; i++) ...[
-                                  if (i > 0) const SizedBox(height: 28),
-                                  _QuestionReview(
-                                    index: result.questions
-                                            .indexOf(_filtered[i]) +
-                                        1,
-                                    question: _filtered[i],
-                                    visualFor: _visualFor,
-                                  ),
-                                ],
-                              ],
+                        children: [
+                          for (var i = 0; i < _filtered.length; i++) ...[
+                            if (i > 0) const SizedBox(height: 28),
+                            _QuestionReview(
+                              index: result.questions
+                                  .indexOf(_filtered[i]) +
+                                  1,
+                              question: _filtered[i],
+                              visualFor: _visualFor,
                             ),
+                          ],
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -218,7 +223,7 @@ class _QuestionReview extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         ...question.options.map(
-          (option) => ExamOptionTile(
+              (option) => ExamOptionTile(
             option: option,
             visual: visualFor(question, option.id),
           ),

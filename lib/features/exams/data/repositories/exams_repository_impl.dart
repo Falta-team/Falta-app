@@ -1,32 +1,205 @@
+import 'package:falta_app/core/api/api_settings.dart';
+import 'package:falta_app/features/exams/data/models/exam_attempt_model.dart';
+import 'package:falta_app/features/exams/data/models/exam_result_model.dart';
 import 'package:falta_app/features/exams/data/models/exams_model.dart';
-import 'package:falta_app/features/exams/data/sources/exams_local_data_source.dart';
+import 'package:falta_app/features/exams/data/sources/exams_remote_data_source.dart';
+import 'package:falta_app/features/exams/domain/entities/exam_attempt_entity.dart';
 import 'package:falta_app/features/exams/domain/entities/exam_question_entity.dart';
-import 'package:falta_app/features/exams/domain/entities/exam_unit_entity.dart';
+import 'package:falta_app/features/exams/domain/entities/exam_result_entity.dart';
 import 'package:falta_app/features/exams/domain/entities/exams_entity.dart';
 import 'package:falta_app/features/exams/domain/repositories/exams_repository.dart';
 
+class ExamsApiException implements Exception {
+  const ExamsApiException(this.message);
+  final String message;
+  @override
+  String toString() => message;
+}
+
 class ExamsRepositoryImpl implements ExamsRepository {
   const ExamsRepositoryImpl({
-    this.localDataSource = const ExamsLocalDataSource(),
+    this.remote = const ExamsRemoteDataSource(),
   });
 
-  final ExamsLocalDataSource localDataSource;
+  final ExamsRemoteDataSource remote;
 
+  // ── GET /exams ──────────────────────────────────────────────────────────
   @override
-  Future<List<ExamsEntity>> getAll() async {
-    final List<ExamsModel> rawData = <ExamsModel>[];
-    return rawData;
+  Future<List<ExamsEntity>> getExams({String? subject}) async {
+    try {
+      final result = await remote.getExams() as Map<String, dynamic>;
+      final statusCode = result['statusCode'] as int;
+      final body = result['body'];
+
+      if (!ApiSettings.isSuccess(statusCode)) {
+        throw ExamsApiException(_extractMessage(body) ?? 'فشل تحميل الاختبارات');
+      }
+
+      final exams = _extractList(body)
+          .map((e) => ExamsModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+
+      if (subject == null || subject.isEmpty) return exams;
+      return exams.where((e) => e.subject == subject).toList();
+    } on ExamsApiException {
+      rethrow;
+    } catch (e) {
+      throw ExamsApiException('خطأ في الاتصال: $e');
+    }
   }
 
+  // ── POST /exams/{examId}/start ─────────────────────────────────────────
   @override
-  Future<List<ExamUnitEntity>> getUnits({required int semester}) {
-    return localDataSource.getUnits(semester: semester);
+  Future<ExamAttemptEntity> startExam({
+    required String examId,
+    required String token,
+  }) async {
+    try {
+      final result = await remote.startExam(examId: examId, token: token)
+      as Map<String, dynamic>;
+      final statusCode = result['statusCode'] as int;
+      final body = result['body'];
+
+      if (!ApiSettings.isSuccess(statusCode)) {
+        throw ExamsApiException(_extractMessage(body) ?? 'تعذر بدء الاختبار');
+      }
+
+      // استخرج timeLimit من exam object في الـ response مباشرة
+      final rawData    = (body is Map) ? (body['data'] as Map<String, dynamic>? ?? {}) : <String,dynamic>{};
+      final examObj    = rawData['exam'] as Map<String, dynamic>? ?? {};
+      final apiTimeLimit = (examObj['timeLimit'] as num?)?.toInt() ??
+          (examObj['timeLimitMinutes'] as num?)?.toInt() ??
+          0;
+
+      return ExamAttemptModel.fromJson(
+        _extractAttemptObject(body, examId: examId),
+        fallbackExamId: examId,
+        fallbackTimeLimitMinutes: apiTimeLimit > 0 ? apiTimeLimit : 40,
+      );
+    } on ExamsApiException {
+      rethrow;
+    } catch (e) {
+      throw ExamsApiException('خطأ في الاتصال: $e');
+    }
   }
 
+  // ── POST /exams/{examId}/submit ────────────────────────────────────────
   @override
-  Future<List<ExamQuestionEntity>> getQuestions({
-    required List<String> lessonIds,
-  }) {
-    return localDataSource.getQuestions(lessonIds: lessonIds);
+  Future<ExamResultEntity> submitExam({
+    required String examId,
+    required String attemptId,
+    required int timeTakenSeconds,
+    required List<ExamQuestionEntity> answeredQuestions,
+    required String token,
+  }) async {
+    try {
+      final answers = [
+        for (final q in answeredQuestions)
+          if (q.selectedOptionId != null)
+            {'questionId': q.id, 'answer': q.selectedOptionId!},
+      ];
+
+      final result = await remote.submitExam(
+        examId: examId,
+        attemptId: attemptId,
+        timeTakenSeconds: timeTakenSeconds,
+        answers: answers,
+        token: token,
+      ) as Map<String, dynamic>;
+      final statusCode = result['statusCode'] as int;
+      final body = result['body'];
+
+      if (!ApiSettings.isSuccess(statusCode)) {
+        throw ExamsApiException(_extractMessage(body) ?? 'تعذر تسليم الاختبار');
+      }
+
+      final resultData = _extractResultObject(body);
+      return ExamResultModel.fromJson(
+        resultData,
+        answeredQuestions: answeredQuestions,
+      );
+    } on ExamsApiException {
+      rethrow;
+    } catch (e) {
+      throw ExamsApiException('خطأ في الاتصال: $e');
+    }
+  }
+
+  // ── Response-shape helpers ─────────────────────────────────────────────
+  // The API wraps payloads as `{ data: { exams: [...] } }` (confirmed
+  // shape for `courses`/`videos` on this backend) — handled defensively
+  // here in case `exams` ever returns a bare list/object instead.
+
+  List<dynamic> _extractList(dynamic body) {
+    if (body is List) return body;
+    if (body is Map<String, dynamic>) {
+      final dynamic data = body['data'];
+      if (data is Map<String, dynamic>) {
+        final dynamic exams = data['exams'];
+        if (exams is List) return exams;
+      }
+      if (data is List) return data;
+      final dynamic flat = body['exams'];
+      if (flat is List) return flat;
+    }
+    return const [];
+  }
+
+  Map<String, dynamic> _extractObject(dynamic body) {
+    if (body is Map<String, dynamic>) {
+      final dynamic data = body['data'];
+      if (data is Map<String, dynamic>) return data;
+      return body;
+    }
+    return const {};
+  }
+
+  /// للـ start exam:
+  /// { data: { attempt: {id,...}, exam: {timeLimit,...}, questions: [...], timeLimitMinutes: 20 } }
+  Map<String, dynamic> _extractAttemptObject(dynamic body, {required String examId}) {
+    if (body is! Map<String, dynamic>) return const {};
+    final data = body['data'] as Map<String, dynamic>? ?? body;
+
+    final attempt     = data['attempt']     as Map<String, dynamic>? ?? {};
+    final exam        = data['exam']        as Map<String, dynamic>? ?? {};
+    final questions   = data['questions']   // ← الأسئلة في data مباشرة
+        ?? attempt['questions']
+        ?? exam['questions'];
+    final timeLimit   = data['timeLimitMinutes']  // ← في data مباشرة
+        ?? attempt['timeLimitMinutes']
+        ?? attempt['timeLimit']
+        ?? exam['timeLimit']
+        ?? exam['timeLimitMinutes'];
+    final attemptId   = attempt['id']
+        ?? attempt['attemptId']
+        ?? data['attemptId'];
+
+    return {
+      ...attempt,                       // id, startTime, ...
+      'attemptId': attemptId,          // نضمن وجوده بالاسمين
+      if (questions != null) 'questions': questions,
+      if (timeLimit != null) 'timeLimit': timeLimit,
+    };
+  }
+
+  /// للـ submit exam: { data: { score, total, results, attempt: {...} } }
+  Map<String, dynamic> _extractResultObject(dynamic body) {
+    if (body is! Map<String, dynamic>) return const {};
+    final data = body['data'] as Map<String, dynamic>? ?? body;
+
+    // لو النتيجة داخل attempt
+    final attempt = data['attempt'] as Map<String, dynamic>?;
+    if (attempt != null) {
+      return {
+        ...data,
+        ...attempt,
+      };
+    }
+    return data;
+  }
+
+  String? _extractMessage(dynamic body) {
+    if (body is Map<String, dynamic>) return body['message'] as String?;
+    return null;
   }
 }

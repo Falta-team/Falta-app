@@ -1,4 +1,6 @@
+import 'package:falta_app/core/pref/shared_pref_controller.dart';
 import 'package:falta_app/core/theme/app_colors.dart';
+import 'package:falta_app/features/auth/data/auth_api_controller.dart';
 import 'package:falta_app/features/profile/data/repositories/profile_repository_impl.dart';
 import 'package:falta_app/features/profile/domain/entities/profile_entity.dart';
 import 'package:falta_app/features/profile/domain/usecases/get_profile.dart';
@@ -12,10 +14,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// "حسابي" tab: avatar header + account menu (Figma node 1:23433).
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
-
   static const String routeName = '/profile';
 
   @override
@@ -24,8 +24,8 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   late final GetProfile _getProfile = GetProfile(ProfileRepositoryImpl());
-
   ProfileEntity? _profile;
+  bool _loading = true;
 
   @override
   void initState() {
@@ -34,9 +34,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _load() async {
+    setState(() => _loading = true);
     final profile = await _getProfile();
     if (!mounted) return;
-    setState(() => _profile = profile);
+    setState(() { _profile = profile; _loading = false; });
   }
 
   Future<void> _openEditProfile() async {
@@ -46,18 +47,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
     await _load();
   }
 
-  void _comingSoon() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('قريباً')),
-    );
-  }
+  void _comingSoon() => ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content: Text('قريباً')),
+  );
 
+  // ── Logout ────────────────────────────────────────────────────────────────
   Future<void> _logout() async {
     final confirmed = await showLogoutDialog(context);
-    if (confirmed == true && mounted) {
-      Navigator.of(context)
-          .pushNamedAndRemoveUntil('/login', (route) => false);
-    }
+    if (confirmed != true || !mounted) return;
+
+    final pref = SharedPrefController();
+
+    // استدعي الـ API logout
+    await AuthApiController().logout(
+      accessToken:  pref.accessToken,
+      refreshToken: pref.refreshToken,
+    );
+
+    // امسح كل البيانات المحلية
+    await pref.clear();
+
+    if (!mounted) return;
+    Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
   }
 
   @override
@@ -67,52 +78,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       backgroundColor: AppColors.white,
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: _loading
+            ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+            : SingleChildScrollView(
           child: Column(
             children: [
               const SizedBox(height: 16),
 
-              // ── Avatar + edit badge ─────────────────────────────────────
+              // ── Avatar ──────────────────────────────────────────────
               Stack(
                 clipBehavior: Clip.none,
                 children: [
                   CircleAvatar(
                     radius: 39,
                     backgroundColor: AppColors.bgLight,
-                    child: const Icon(
-                      Icons.person,
-                      size: 40,
-                      color: AppColors.primary,
-                    ),
+                    backgroundImage: (profile?.avatarUrl.isNotEmpty == true)
+                        ? NetworkImage(profile!.avatarUrl)
+                        : null,
+                    child: (profile?.avatarUrl.isNotEmpty == true)
+                        ? null
+                        : const Icon(Icons.person, size: 40, color: AppColors.primary),
                   ),
                   PositionedDirectional(
-                    end: -4,
-                    bottom: -4,
+                    end: -4, bottom: -4,
                     child: GestureDetector(
                       onTap: _openEditProfile,
                       child: Container(
-                        width: 28,
-                        height: 28,
+                        width: 28, height: 28,
                         decoration: const BoxDecoration(
-                          color: AppColors.white,
-                          shape: BoxShape.circle,
+                          color: AppColors.white, shape: BoxShape.circle,
                         ),
                         padding: const EdgeInsets.all(3),
-                        child: SvgPicture.asset(
-                          'assets/icons/profile/ic_edit.svg',
-                        ),
+                        child: SvgPicture.asset('assets/icons/profile/ic_edit.svg'),
                       ),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 10),
+
+              // ── Name ────────────────────────────────────────────────
               Text(
-                profile?.fullName ?? '',
+                profile?.fullName ?? SharedPrefController().fullName,
                 style: GoogleFonts.inter(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black,
+                  fontSize: 16, fontWeight: FontWeight.w500, color: Colors.black,
                 ),
               ),
               const SizedBox(height: 2),
@@ -121,18 +130,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Text(
                   profile?.branch ?? '',
                   style: GoogleFonts.inter(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.black,
+                    fontSize: 12, fontWeight: FontWeight.w500, color: Colors.black,
                   ),
                 ),
               ),
               const SizedBox(height: 12),
 
-              // ── Edit profile button ─────────────────────────────────────
+              // ── Edit button ─────────────────────────────────────────
               SizedBox(
-                width: 136,
-                height: 32,
+                width: 136, height: 32,
                 child: ElevatedButton(
                   onPressed: _openEditProfile,
                   style: ElevatedButton.styleFrom(
@@ -147,17 +153,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   child: Text(
                     'تعديل الملف الشخصي',
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
+                    style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500),
                   ),
                 ),
               ),
               const SizedBox(height: 20),
               const Divider(height: 1, thickness: 1, color: Color(0xFFEAEAEA)),
 
-              // ── Menu ────────────────────────────────────────────────────
+              // ── Menu ────────────────────────────────────────────────
               Padding(
                 padding: const EdgeInsets.fromLTRB(23, 16, 23, 24),
                 child: Column(
@@ -165,8 +168,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ProfileMenuItem(
                       iconAsset: 'assets/icons/profile/ic_settings.svg',
                       label: 'الاعدادات',
-                      onTap: () =>
-                          Navigator.of(context).pushNamed('/settings'),
+                      onTap: () => Navigator.of(context).pushNamed('/settings'),
                     ),
                     ProfileMenuItem(
                       iconAsset: 'assets/icons/profile/ic_card.svg',
@@ -177,34 +179,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ProfileMenuItem(
                       iconAsset: 'assets/icons/profile/ic_favorite.svg',
                       label: 'المفضلة',
-                      onTap: () =>
-                          Navigator.of(context).pushNamed('/favorites'),
+                      onTap: () => Navigator.of(context).pushNamed('/favorites'),
                     ),
                     ProfileMenuItem(
                       iconAsset: 'assets/icons/profile/ic_history.svg',
                       iconSize: 24,
                       label: 'السجل',
-                      onTap: () =>
-                          Navigator.of(context).pushNamed('/history'),
+                      onTap: _comingSoon,
                     ),
                     ProfileMenuItem(
                       iconAsset: 'assets/icons/profile/ic_about.svg',
                       label: 'حول التطبيق',
-                      onTap: () =>
-                          Navigator.of(context).pushNamed(AboutScreen.routeName),
+                      onTap: () => Navigator.of(context).pushNamed(AboutScreen.routeName),
                     ),
                     ProfileMenuItem(
                       iconAsset: 'assets/icons/profile/ic_support.svg',
                       label: 'الدعم الفني',
-                      onTap: () =>
-                          Navigator.of(context).pushNamed(SupportScreen.routeName),
+                      onTap: () => Navigator.of(context).pushNamed(SupportScreen.routeName),
                     ),
                     ProfileMenuItem(
                       iconAsset: 'assets/icons/profile/ic_privacy.svg',
                       iconSize: 20,
                       label: 'سياسة الخصوصية',
-                      onTap: () =>
-                          Navigator.of(context).pushNamed(PrivacyScreen.routeName),
+                      onTap: () => Navigator.of(context).pushNamed(PrivacyScreen.routeName),
                     ),
                     ProfileMenuItem(
                       iconAsset: 'assets/icons/profile/ic_logout.svg',

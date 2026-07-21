@@ -1,104 +1,67 @@
 import 'package:falta_app/core/theme/app_colors.dart';
-import 'package:falta_app/features/exams/domain/entities/exam_unit_entity.dart';
+import 'package:falta_app/features/exams/domain/entities/exams_entity.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+/// Card representing a single ready-made exam from `GET /exams`.
+///
+/// Keeps the original tick-box visual design (previously used for a
+/// unit/lesson picker that had no backing endpoint); tapping the tick or
+/// the card selects this exam as the one to start.
 class ExamUnitCard extends StatelessWidget {
   const ExamUnitCard({
-    required this.unit,
-    required this.onToggleExpand,
-    required this.onToggleUnit,
-    required this.onToggleLesson,
+    required this.exam,
+    required this.isSelected,
+    required this.onTap,
     super.key,
   });
 
-  final ExamUnitEntity unit;
-  final VoidCallback onToggleExpand;
-  final VoidCallback onToggleUnit;
-  final ValueChanged<String> onToggleLesson;
+  final ExamsEntity exam;
+  final bool isSelected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      padding: const EdgeInsetsDirectional.fromSTEB(14, 12, 14, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // RTL: start=right → tick, title, then chevron at end (left)
-          Row(
-            children: [
-              _TickBox(checked: unit.isSelected, onTap: onToggleUnit),
-              const SizedBox(width: 8),
-              Expanded(
-                child: GestureDetector(
-                  onTap: onToggleExpand,
-                  child: RichText(
-                    textAlign: TextAlign.start,
-                    text: TextSpan(
-                      children: [
-                        TextSpan(
-                          text: unit.title,
-                          style: GoogleFonts.inter(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.titleDark,
-                            letterSpacing: 0.08,
-                          ),
-                        ),
-                        TextSpan(
-                          text: ' ${unit.subtitle}',
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.titleDark.withValues(alpha: 0.7),
-                            letterSpacing: 0.06,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              GestureDetector(
-                onTap: onToggleExpand,
-                child: Icon(
-                  unit.isExpanded
-                      ? Icons.keyboard_arrow_up
-                      : Icons.keyboard_arrow_down,
-                  size: 24,
-                  color: AppColors.titleDark,
-                ),
-              ),
-            ],
-          ),
-          if (unit.isExpanded) ...[
-            const SizedBox(height: 12),
-            ...unit.lessons.map(
-              (lesson) => Padding(
-                padding: const EdgeInsets.only(bottom: 14),
-                child: Row(
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: isSelected
+              ? Border.all(color: AppColors.primary, width: 1.2)
+              : null,
+        ),
+        padding: const EdgeInsetsDirectional.fromSTEB(14, 12, 14, 12),
+        child: Row(
+          children: [
+            _TickBox(checked: isSelected, onTap: onTap),
+            const SizedBox(width: 8),
+            Expanded(
+              child: RichText(
+                textAlign: TextAlign.start,
+                text: TextSpan(
                   children: [
-                    _TickBox(
-                      checked: lesson.isSelected,
-                      onTap: () => onToggleLesson(lesson.id),
+                    TextSpan(
+                      text: exam.title,
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.titleDark,
+                        letterSpacing: 0.08,
+                      ),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        lesson.title,
-                        textAlign: TextAlign.start,
-                        style: GoogleFonts.cairo(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.titleDark,
-                          letterSpacing: 0.07,
-                        ),
+                    TextSpan(
+                      text: '  ${exam.year} · ${exam.totalQuestions} سؤال · '
+                          '${exam.timeLimit} د',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.titleDark.withValues(alpha: 0.7),
+                        letterSpacing: 0.06,
                       ),
                     ),
                   ],
@@ -106,7 +69,7 @@ class ExamUnitCard extends StatelessWidget {
               ),
             ),
           ],
-        ],
+        ),
       ),
     );
   }

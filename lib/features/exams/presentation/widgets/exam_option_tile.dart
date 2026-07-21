@@ -44,13 +44,32 @@ class ExamOptionTile extends StatelessWidget {
     }
   }
 
+  Color? get _bgColor {
+    switch (visual) {
+      case ExamOptionVisual.correct:
+        return AppColors.optionCorrect.withOpacity(0.10);
+      case ExamOptionVisual.wrong:
+        return AppColors.optionWrong.withOpacity(0.10);
+      default:
+        return null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        // RTL: radio on the right (start), text follows toward the left.
+      borderRadius: BorderRadius.circular(8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        decoration: BoxDecoration(
+          color: _bgColor,
+          borderRadius: BorderRadius.circular(8),
+          border: (visual == ExamOptionVisual.correct || visual == ExamOptionVisual.wrong)
+              ? Border.all(color: _textColor.withOpacity(0.35), width: 1)
+              : null,
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
         child: Row(
           children: [
             SizedBox(

@@ -1,112 +1,72 @@
 import 'package:falta_app/core/theme/app_colors.dart';
-import 'package:falta_app/features/exams/data/repositories/exams_repository_impl.dart';
-import 'package:falta_app/features/exams/domain/entities/exam_unit_entity.dart';
-import 'package:falta_app/features/exams/domain/usecases/get_exam_units.dart';
+import 'package:falta_app/features/exams/domain/entities/exams_entity.dart';
+import 'package:falta_app/features/exams/domain/providers/exams_provider.dart';
 import 'package:falta_app/features/exams/presentation/screens/exam_session_screen.dart';
 import 'package:falta_app/features/exams/presentation/widgets/exam_app_bar.dart';
 import 'package:falta_app/features/exams/presentation/widgets/exam_unit_card.dart';
-import 'package:falta_app/features/exams/presentation/widgets/semester_toggle.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class ExamUnitsScreen extends StatefulWidget {
+/// Maps the Arabic subject label shown in the UI to the `subject` slug
+/// the real API expects (same values used by `POST /exams` in the
+/// Postman collection, e.g. `physics`, `math`).
+String _subjectSlug(String arabicTitle) {
+  const map = {
+    'الرياضيات': 'math',
+    'العلوم الحياتية': 'biology',
+    'الأحياء': 'biology',
+    'الفيزياء': 'physics',
+    'الكيمياء': 'chemistry',
+    'اللغة العربية': 'arabic',
+    'لغة عربيه': 'arabic',
+    'اللغة الإنجليزية': 'english',
+  };
+  return map[arabicTitle.trim()] ?? arabicTitle.trim();
+}
+
+/// Lets the student pick one of the ready-made exams for [subjectTitle]
+/// (`GET /exams`) and start it. Keeps the original tick-box card design;
+/// the underlying API has no "build a custom exam from units/lessons"
+/// endpoint, so this now selects a single, complete exam instead.
+class ExamUnitsScreen extends ConsumerStatefulWidget {
   const ExamUnitsScreen({
     super.key,
     this.subjectTitle = 'الرياضيات',
+    this.embeddedMode = false,
   });
 
   static const String routeName = '/exam-units';
 
   final String subjectTitle;
+  /// لما تكون embedded في ExamsScreen، نخفي الـ AppBar
+  final bool embeddedMode;
 
   @override
-  State<ExamUnitsScreen> createState() => _ExamUnitsScreenState();
+  ConsumerState<ExamUnitsScreen> createState() => _ExamUnitsScreenState();
 }
 
-class _ExamUnitsScreenState extends State<ExamUnitsScreen> {
-  final GetExamUnits _getExamUnits = const GetExamUnits(ExamsRepositoryImpl());
+class _ExamUnitsScreenState extends ConsumerState<ExamUnitsScreen> {
+  String? _selectedExamId;
 
-  int _semester = 1;
-  bool _loading = true;
-  List<ExamUnitEntity> _units = const [];
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    setState(() => _loading = true);
-    final units = await _getExamUnits(semester: _semester);
-    if (!mounted) return;
-    setState(() {
-      _units = units;
-      _loading = false;
-    });
-  }
-
-  void _toggleExpand(String unitId) {
-    setState(() {
-      _units = _units
-          .map(
-            (u) => u.id == unitId ? u.copyWith(isExpanded: !u.isExpanded) : u,
-          )
-          .toList();
-    });
-  }
-
-  void _toggleUnit(String unitId) {
-    setState(() {
-      _units = _units.map((u) {
-        if (u.id != unitId) return u;
-        final selected = !u.isSelected;
-        return u.copyWith(
-          isSelected: selected,
-          lessons: u.lessons
-              .map((l) => l.copyWith(isSelected: selected))
-              .toList(),
-        );
-      }).toList();
-    });
-  }
-
-  void _toggleLesson(String unitId, String lessonId) {
-    setState(() {
-      _units = _units.map((u) {
-        if (u.id != unitId) return u;
-        final lessons = u.lessons
-            .map(
-              (l) => l.id == lessonId
-                  ? l.copyWith(isSelected: !l.isSelected)
-                  : l,
-            )
-            .toList();
-        final allSelected = lessons.every((l) => l.isSelected);
-        return u.copyWith(lessons: lessons, isSelected: allSelected);
-      }).toList();
-    });
-  }
-
-  List<String> get _selectedLessonIds => _units
-      .expand((u) => u.lessons)
-      .where((l) => l.isSelected)
-      .map((l) => l.id)
-      .toList();
-
-  Future<void> _startExam() async {
-    final lessonIds = _selectedLessonIds;
-    if (lessonIds.isEmpty) {
+  void _startExam(List<ExamsEntity> exams) {
+    if (_selectedExamId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('اختر درساً واحداً على الأقل')),
+        const SnackBar(content: Text('اختر اختباراً أولاً')),
       );
       return;
     }
-    await Navigator.of(context).push(
+    // ابحث عن الـ exam المختار عشان تمرّر timeLimit الحقيقي
+    final idx = exams.indexWhere((e) => e.id == _selectedExamId);
+    final timeLimit = idx >= 0 && exams[idx].timeLimit > 0
+        ? exams[idx].timeLimit
+        : 40;
+    Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => ExamSessionScreen(
           subjectTitle: widget.subjectTitle,
-          lessonIds: lessonIds,
+          examId: _selectedExamId!,
+          timeLimitFallback: timeLimit,
         ),
       ),
     );
@@ -114,70 +74,92 @@ class _ExamUnitsScreenState extends State<ExamUnitsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final subject = _subjectSlug(widget.subjectTitle);
+    final examsAsync = ref.watch(examsBySubjectProvider(subject));
+
     return Scaffold(
       backgroundColor: AppColors.backgroundAppColor,
-      appBar: ExamAppBar(title: widget.subjectTitle),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
-            child: SemesterToggle(
-              selectedSemester: _semester,
-              onChanged: (value) {
-                _semester = value;
-                _load();
-              },
+      appBar: widget.embeddedMode ? null : ExamAppBar(title: widget.subjectTitle),
+      body: examsAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  error.toString(),
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.cairo(color: AppColors.titleDark),
+                ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: () => ref
+                      .read(examsBySubjectProvider(subject).notifier)
+                      .refresh(),
+                  child: const Text('إعادة المحاولة'),
+                ),
+              ],
             ),
           ),
-          Expanded(
-            child: _loading
-                ? const Center(child: CircularProgressIndicator())
-                : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                    itemCount: _units.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      final unit = _units[index];
-                      return ExamUnitCard(
-                        unit: unit,
-                        onToggleExpand: () => _toggleExpand(unit.id),
-                        onToggleUnit: () => _toggleUnit(unit.id),
-                        onToggleLesson: (lessonId) =>
-                            _toggleLesson(unit.id, lessonId),
-                      );
-                    },
-                  ),
-          ),
-          SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(40, 8, 40, 16),
-              child: SizedBox(
-                width: double.infinity,
-                height: 40,
-                child: ElevatedButton(
-                  onPressed: _startExam,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: AppColors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+        ),
+        data: (exams) => Column(
+          children: [
+            Expanded(
+              child: exams.isEmpty
+                  ? Center(
+                child: Text(
+                  'لا توجد اختبارات متاحة لهذه المادة حالياً',
+                  style: GoogleFonts.cairo(color: AppColors.textSecondary),
+                ),
+              )
+                  : ListView.separated(
+                padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
+                itemCount: exams.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  final exam = exams[index];
+                  return ExamUnitCard(
+                    exam: exam,
+                    isSelected: exam.id == _selectedExamId,
+                    onTap: () =>
+                        setState(() => _selectedExamId = exam.id),
+                  );
+                },
+              ),
+            ),
+            SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(40, 8, 40, 16),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 40,
+                  child: ElevatedButton(
+                    onPressed: () => _startExam(exams),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: AppColors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
-                  ),
-                  child: Text(
-                    'بدأ الاختبار',
-                    style: GoogleFonts.inter(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      letterSpacing: 0.08,
+                    child: Text(
+                      'بدأ الاختبار',
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 0.08,
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

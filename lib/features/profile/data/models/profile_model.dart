@@ -1,10 +1,5 @@
 import 'package:falta_app/features/profile/domain/entities/profile_entity.dart';
 
-/// Data model for Profile.
-///
-/// Handles JSON (de)serialization and maps to/from the domain
-/// [ProfileEntity]. This is the only layer allowed to
-/// know about the raw API/DB field names.
 class ProfileModel extends ProfileEntity {
   const ProfileModel({
     required super.id,
@@ -16,24 +11,32 @@ class ProfileModel extends ProfileEntity {
   });
 
   factory ProfileModel.fromJson(Map<String, dynamic> json) {
+    // API: { firstName, lastName, fullName, academicBranch, phoneNumber, profilePhotoUrl }
+    final first   = json['firstName']?.toString()?.trim() ?? '';
+    final last    = json['lastName']?.toString()?.trim()  ?? '';
+    final full    = json['fullName']?.toString()?.trim()  ??
+        json['full_name']?.toString()?.trim() ??
+        '$first $last'.trim();
+
+    const branchMap = {'scientific': 'الفرع العلمي', 'literary': 'الفرع الأدبي'};
+    final rawBranch = (json['academicBranch'] ?? json['branch'] ?? '').toString();
+    final branch = branchMap[rawBranch] ?? rawBranch;
+
     return ProfileModel(
-      id: json['id'] as String,
-      fullName: json['full_name'] as String? ?? '',
-      branch: json['branch'] as String? ?? '',
-      countryCode: json['country_code'] as String? ?? '+970',
-      phone: json['phone'] as String? ?? '',
-      avatarUrl: json['avatar_url'] as String? ?? '',
+      id:          json['id']?.toString()            ?? '',
+      fullName:    full,
+      branch:      branch,
+      countryCode: '+970',
+      phone:       (json['phoneNumber'] ?? json['phone'] ?? '').toString(),
+      avatarUrl:   (json['profilePhotoUrl'] ?? json['avatar_url'] ?? '').toString(),
     );
   }
 
-  Map<String, dynamic> toJson() {
-    return <String, dynamic>{
-      'id': id,
-      'full_name': fullName,
-      'branch': branch,
-      'country_code': countryCode,
-      'phone': phone,
-      'avatar_url': avatarUrl,
-    };
-  }
+  Map<String, dynamic> toJson() => {
+    'id':        id,
+    'fullName':  fullName,
+    'branch':    branch,
+    'phone':     phone,
+    'avatarUrl': avatarUrl,
+  };
 }

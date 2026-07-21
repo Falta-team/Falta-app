@@ -1,52 +1,50 @@
 import 'dart:async';
 
 import 'package:falta_app/core/theme/app_colors.dart';
-import 'package:falta_app/features/exams/data/repositories/exams_repository_impl.dart';
 import 'package:falta_app/features/exams/domain/entities/exam_question_entity.dart';
-import 'package:falta_app/features/exams/domain/usecases/get_exam_questions.dart';
-import 'package:falta_app/features/exams/domain/usecases/submit_exam.dart';
+import 'package:falta_app/features/exams/domain/providers/exams_provider.dart';
 import 'package:falta_app/features/exams/presentation/screens/exam_result_screen.dart';
 import 'package:falta_app/features/exams/presentation/widgets/exam_app_bar.dart';
 import 'package:falta_app/features/exams/presentation/widgets/exam_option_tile.dart';
 import 'package:falta_app/features/exams/presentation/widgets/exam_timer.dart';
 import 'package:falta_app/features/exams/presentation/widgets/question_number_strip.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class ExamSessionScreen extends StatefulWidget {
+/// Live exam session: starts the attempt (`POST /exams/{examId}/start`),
+/// runs the countdown timer, lets the student answer, then submits
+/// (`POST /exams/{examId}/submit`) when they finish or time runs out.
+class ExamSessionScreen extends ConsumerStatefulWidget {
   const ExamSessionScreen({
-    required this.lessonIds,
+    required this.examId,
     super.key,
     this.subjectTitle = 'الرياضيات',
+    this.timeLimitFallback = 40,
   });
 
   static const String routeName = '/exam-session';
 
   final String subjectTitle;
-  final List<String> lessonIds;
+  final String examId;
+  /// الوقت المأخوذ من GET /exams — يُستخدم كـ fallback لو الـ start response ما رجّع timeLimit
+  final int timeLimitFallback;
 
   @override
-  State<ExamSessionScreen> createState() => _ExamSessionScreenState();
+  ConsumerState<ExamSessionScreen> createState() => _ExamSessionScreenState();
 }
 
-class _ExamSessionScreenState extends State<ExamSessionScreen> {
-  static const Duration _totalDuration = Duration(minutes: 40);
+class _ExamSessionScreenState extends ConsumerState<ExamSessionScreen> {
+  bool _submitting = false;
+  String? _attemptId;
 
-  final GetExamQuestions _getExamQuestions =
-      const GetExamQuestions(ExamsRepositoryImpl());
-  final SubmitExam _submitExam = const SubmitExam();
-
-  bool _loading = true;
   List<ExamQuestionEntity> _questions = const [];
   int _currentIndex = 0;
-  Duration _remaining = _totalDuration;
-  Timer? _timer;
 
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
+  Duration _total = Duration.zero;
+  Duration _remaining = Duration.zero;
+  int _elapsedSeconds = 0;
+  Timer? _timer;
 
   @override
   void dispose() {
@@ -54,13 +52,22 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
     super.dispose();
   }
 
-  Future<void> _load() async {
-    final questions = await _getExamQuestions(lessonIds: widget.lessonIds);
-    if (!mounted) return;
-    setState(() {
-      _questions = questions;
-      _loading = false;
-    });
+  void _initFromAttempt({
+    required String attemptId,
+    required List<ExamQuestionEntity> questions,
+    required int timeLimitMinutes,
+  }) {
+    // Keyed off the attemptId itself (not a one-shot "already initialized"
+    // flag) so a *different* attempt — e.g. the fresh one autoDispose
+    // fetches when this screen is reopened — always resets the session
+    // state instead of being silently ignored.
+    if (_attemptId == attemptId) return;
+    _attemptId = attemptId;
+    _questions = questions;
+    _currentIndex = 0;
+    _elapsedSeconds = 0;
+    _total = Duration(minutes: timeLimitMinutes > 0 ? timeLimitMinutes : widget.timeLimitFallback);
+    _remaining = _total;
     _startTimer();
   }
 
@@ -68,6 +75,7 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
+      _elapsedSeconds += 1;
       if (_remaining.inSeconds <= 0) {
         _timer?.cancel();
         _finish();
@@ -96,120 +104,200 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
     setState(() => _currentIndex = index);
   }
 
-  void _finish() {
+  Future<void> _finish() async {
     _timer?.cancel();
-    final result = _submitExam(_questions);
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(
-        builder: (_) => ExamResultScreen(result: result),
-      ),
-    );
+    if (_submitting || _attemptId == null) return;
+    setState(() => _submitting = true);
+
+    try {
+      final result =
+      await ref.read(examSubmitProvider(widget.examId).notifier).submit(
+        attemptId: _attemptId!,
+        timeTakenSeconds: _elapsedSeconds,
+        answeredQuestions: _questions,
+      );
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(
+          builder: (_) => ExamResultScreen(
+            result: result,
+            subjectTitle: widget.subjectTitle,
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+      // Keep the countdown going after a failed submit so the student
+      // can retry "إنهاء" instead of losing the attempt outright.
+      if (_remaining.inSeconds > 0) _startTimer();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final attemptAsync = ref.watch(examAttemptProvider(widget.examId));
+
     return Scaffold(
       backgroundColor: AppColors.backgroundAppColor,
       appBar: ExamAppBar(title: 'اختبار ${widget.subjectTitle}'),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
+      body: attemptAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-                    child: Column(
-                      children: [
-                        // RTL: start(right)=عداد السؤال، end(left)=المؤقت
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'السؤال ${_currentIndex + 1} من  ${_questions.length}',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
-                                    color: AppColors.titleDark,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Container(
-                                  width: 109,
-                                  height: 1,
-                                  color: AppColors.primary,
-                                ),
-                              ],
-                            ),
-                            const Spacer(),
-                            ExamTimer(
-                              remaining: _remaining,
-                              total: _totalDuration,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFFFEFE),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                Text(
+                  error.toString(),
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.cairo(color: AppColors.titleDark),
+                ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: () =>
+                      ref.invalidate(examAttemptProvider(widget.examId)),
+                  child: const Text('إعادة المحاولة'),
+                ),
+              ],
+            ),
+          ),
+        ),
+        data: (attempt) {
+          _initFromAttempt(
+            attemptId: attempt.attemptId,
+            questions: attempt.questions,
+            timeLimitMinutes: attempt.timeLimitMinutes > 0
+                ? attempt.timeLimitMinutes
+                : widget.timeLimitFallback,
+          );
+
+          if (_questions.isEmpty) {
+            return Center(
+              child: Text(
+                'لا توجد أسئلة في هذا الاختبار',
+                style: GoogleFonts.cairo(color: AppColors.textSecondary),
+              ),
+            );
+          }
+
+          return Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                  child: Column(
+                    children: [
+                      // RTL: start(right)=عداد السؤال، end(left)=المؤقت
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                _current.text,
-                                textAlign: TextAlign.start,
+                                'السؤال ${_currentIndex + 1} من  ${_questions.length}',
                                 style: GoogleFonts.inter(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w500,
                                   color: AppColors.titleDark,
                                 ),
                               ),
-                              const SizedBox(height: 20),
-                              ..._current.options.map(
-                                (option) => ExamOptionTile(
-                                  option: option,
-                                  visual: option.id == _current.selectedOptionId
-                                      ? ExamOptionVisual.selected
-                                      : ExamOptionVisual.idle,
-                                  onTap: () => _selectOption(option.id),
-                                ),
+                              const SizedBox(height: 6),
+                              Container(
+                                width: 109,
+                                height: 1,
+                                color: AppColors.primary,
                               ),
                             ],
                           ),
+                          const Spacer(),
+                          ExamTimer(
+                            remaining: _remaining,
+                            total: _total,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFFEFE),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        const SizedBox(height: 28),
-                        // RTL: إنهاء يمين، السابق يسار
-                        Row(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            SizedBox(
-                              width: 169,
-                              height: 48,
-                              child: ElevatedButton(
-                                onPressed: _finish,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primaryBright,
-                                  foregroundColor: AppColors.white,
-                                  elevation: 0,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
+                            Text(
+                              _current.text,
+                              textAlign: TextAlign.start,
+                              style: GoogleFonts.inter(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.titleDark,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            ..._current.options.map(
+                                  (option) => ExamOptionTile(
+                                option: option,
+                                visual: option.id == _current.selectedOptionId
+                                    ? ExamOptionVisual.selected
+                                    : ExamOptionVisual.idle,
+                                onTap: () => _selectOption(option.id),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 28),
+                      // RTL: زر التالي/إنهاء يمين، السابق يسار
+                      Row(
+                        children: [
+                          SizedBox(
+                            width: 169,
+                            height: 48,
+                            child: ElevatedButton(
+                              onPressed: _submitting
+                                  ? null
+                                  : (_currentIndex < _questions.length - 1
+                                  ? () => _goTo(_currentIndex + 1)
+                                  : _finish),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primaryBright,
+                                foregroundColor: AppColors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: Text(
-                                  'إنهاء',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                  ),
+                              ),
+                              child: _submitting
+                                  ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppColors.white,
+                                ),
+                              )
+                                  : Text(
+                                _currentIndex < _questions.length - 1
+                                    ? 'التالي'
+                                    : 'إنهاء',
+                                style: GoogleFonts.inter(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ),
-                            const Spacer(),
+                          ),
+                          const Spacer(),
+                          if (_currentIndex > 0)
                             TextButton(
                               onPressed: () => _goTo(_currentIndex - 1),
                               child: Text(
@@ -220,27 +308,29 @@ class _ExamSessionScreenState extends State<ExamSessionScreen> {
                                 ),
                               ),
                             ),
-                          ],
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-                SafeArea(
-                  top: false,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                    child: QuestionNumberStrip(
-                      currentIndex: _currentIndex,
-                      total: _questions.length,
-                      onSelect: _goTo,
-                      onPreviousPage: () => _goTo(_currentIndex - 1),
-                      onNextPage: () => _goTo(_currentIndex + 1),
-                    ),
+              ),
+              SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                  child: QuestionNumberStrip(
+                    currentIndex: _currentIndex,
+                    total: _questions.length,
+                    onSelect: _goTo,
+                    onPreviousPage: () => _goTo(_currentIndex - 1),
+                    onNextPage: () => _goTo(_currentIndex + 1),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 }

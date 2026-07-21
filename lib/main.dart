@@ -130,12 +130,10 @@ class MyApp extends StatelessWidget {
             if (args is Map<String, dynamic>) {
               return ExamSessionScreen(
                 subjectTitle: args['subjectTitle'] as String? ?? 'الرياضيات',
-                lessonIds: List<String>.from(
-                  args['lessonIds'] as List? ?? const <String>[],
-                ),
+                examId: args['examId'] as String? ?? '',
               );
             }
-            return const ExamSessionScreen(lessonIds: <String>[]);
+            return const ExamSessionScreen(examId: '');
           },
         },
         onGenerateRoute: (settings) {
