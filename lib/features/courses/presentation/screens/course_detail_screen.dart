@@ -6,6 +6,7 @@ import 'package:falta_app/features/courses/presentation/widgets/course_comments_
 import 'package:falta_app/features/courses/presentation/widgets/course_fullscreen_player.dart';
 import 'package:falta_app/features/courses/presentation/widgets/course_video_header.dart';
 import 'package:falta_app/features/courses/presentation/widgets/course_videos_tab.dart';
+import 'package:falta_app/features/favorites/domain/providers/favorites_provider.dart';
 import 'package:falta_app/utils/extensions/extensions.dart';
 import 'package:falta_app/utils/video/video_cache_manager.dart';
 import 'package:falta_app/utils/video/video_player_controller_factory.dart';
@@ -210,10 +211,44 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
                             ),
                           ),
                           12.ws,
-                          const Icon(
-                            Icons.bookmark,
-                            color: AppColors.primary,
-                            size: 26,
+                          Consumer(
+                            builder: (context, ref, _) {
+                              final favoritesAsync =
+                                  ref.watch(favoritesListProvider);
+                              final notifier =
+                                  ref.read(favoritesListProvider.notifier);
+                              final isSaved =
+                                  notifier.isFavorited('course', course.id);
+                              final isPending =
+                                  notifier.isPending('course', course.id);
+                              return GestureDetector(
+                                onTap: favoritesAsync.isLoading || isPending
+                                    ? null
+                                    : () async {
+                                        try {
+                                          await notifier.toggle(
+                                            itemType: 'course',
+                                            itemId: course.id,
+                                            title: course.title,
+                                            subtitle: course.instructorName,
+                                            image: course.image,
+                                            meta: course.subject,
+                                          );
+                                        } catch (e) {
+                                          if (!context.mounted) return;
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            SnackBar(content: Text(e.toString())),
+                                          );
+                                        }
+                                      },
+                                child: Icon(
+                                  isSaved ? Icons.bookmark : Icons.bookmark_border,
+                                  color: AppColors.primary,
+                                  size: 26,
+                                ),
+                              );
+                            },
                           ),
                         ],
                       ),

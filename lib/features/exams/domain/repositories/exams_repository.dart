@@ -26,5 +26,6 @@ abstract class ExamsRepository {
     required int timeTakenSeconds,
     required List<ExamQuestionEntity> answeredQuestions,
     required String token,
+    Map<String, String> correctAnswers = const {},
   });
 }

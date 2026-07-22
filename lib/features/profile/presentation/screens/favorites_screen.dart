@@ -1,70 +1,52 @@
 import 'package:falta_app/core/theme/app_colors.dart';
+import 'package:falta_app/features/courses/presentation/screens/course_detail_screen.dart';
 import 'package:falta_app/features/exams/presentation/widgets/exam_app_bar.dart';
-import 'package:falta_app/features/profile/data/repositories/profile_repository_impl.dart';
+import 'package:falta_app/features/favorites/domain/entities/favorite_entry_entity.dart';
+import 'package:falta_app/features/favorites/domain/providers/favorites_provider.dart';
 import 'package:falta_app/features/profile/domain/entities/favorite_entities.dart';
-import 'package:falta_app/features/profile/domain/usecases/get_favorites.dart';
 import 'package:falta_app/features/profile/presentation/widgets/favorite_lesson_card.dart';
 import 'package:falta_app/features/profile/presentation/widgets/favorite_teacher_card.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 /// "المفضلة" screen with teachers grid / courses list tabs
 /// (Figma nodes 1:24013 and 1:24164).
-class FavoritesScreen extends StatefulWidget {
+///
+/// Backed by the real `GET /favorites` API via [favoritesListProvider] —
+/// the same provider every bookmark button in the app reads/writes, so
+/// removing an item here also un-marks it wherever else it's shown.
+class FavoritesScreen extends ConsumerStatefulWidget {
   const FavoritesScreen({super.key});
 
   static const String routeName = '/favorites';
 
   @override
-  State<FavoritesScreen> createState() => _FavoritesScreenState();
+  ConsumerState<FavoritesScreen> createState() => _FavoritesScreenState();
 }
 
 enum _FavoritesTab { teachers, courses }
 
-class _FavoritesScreenState extends State<FavoritesScreen> {
-  late final ProfileRepositoryImpl _repository = ProfileRepositoryImpl();
-  late final GetFavoriteTeachers _getTeachers =
-      GetFavoriteTeachers(_repository);
-  late final GetFavoriteLessons _getLessons = GetFavoriteLessons(_repository);
-
+class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
   _FavoritesTab _tab = _FavoritesTab.teachers;
-  bool _loading = true;
-  List<FavoriteTeacherEntity> _teachers = const [];
-  List<FavoriteLessonEntity> _lessons = const [];
 
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    final results = await Future.wait<Object>([
-      _getTeachers(),
-      _getLessons(),
-    ]);
-    if (!mounted) return;
-    setState(() {
-      _teachers = results[0] as List<FavoriteTeacherEntity>;
-      _lessons = results[1] as List<FavoriteLessonEntity>;
-      _loading = false;
-    });
-  }
-
-  void _removeTeacher(String id) {
-    setState(() {
-      _teachers = _teachers.where((t) => t.id != id).toList();
-    });
-  }
-
-  void _removeLesson(String id) {
-    setState(() {
-      _lessons = _lessons.where((l) => l.id != id).toList();
-    });
+  Future<void> _remove(FavoriteEntryEntity entry) async {
+    try {
+      await ref.read(favoritesListProvider.notifier).toggle(
+            itemType: entry.itemType,
+            itemId: entry.itemId,
+          );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.toString())));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final favoritesAsync = ref.watch(favoritesListProvider);
+
     return Scaffold(
       backgroundColor: AppColors.backgroundAppColor,
       appBar: const ExamAppBar(title: 'المفضلة'),
@@ -94,21 +76,54 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
           // ── Content ─────────────────────────────────────────────────────
           Expanded(
-            child: _loading
-                ? const Center(
-                    child: CircularProgressIndicator(color: AppColors.primary),
-                  )
-                : _tab == _FavoritesTab.teachers
-                    ? _buildTeachersGrid()
-                    : _buildLessonsList(),
+            child: favoritesAsync.when(
+              loading: () => const Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              ),
+              error: (error, _) => Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        error.toString(),
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.cairo(color: AppColors.titleDark),
+                      ),
+                      const SizedBox(height: 12),
+                      TextButton(
+                        onPressed: () =>
+                            ref.read(favoritesListProvider.notifier).refresh(),
+                        child: const Text('إعادة المحاولة'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              data: (entries) {
+                // Only `itemType: "course"` is confirmed by the API; any
+                // `instructor` entries (if the backend ever adds that
+                // type) land in the teachers tab, everything else in
+                // courses.
+                final teacherEntries =
+                    entries.where((e) => e.itemType == 'instructor').toList();
+                final courseEntries =
+                    entries.where((e) => e.itemType != 'instructor').toList();
+
+                return _tab == _FavoritesTab.teachers
+                    ? _buildTeachersGrid(teacherEntries)
+                    : _buildLessonsList(courseEntries);
+              },
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildTeachersGrid() {
-    if (_teachers.isEmpty) return const _EmptyState();
+  Widget _buildTeachersGrid(List<FavoriteEntryEntity> entries) {
+    if (entries.isEmpty) return const _EmptyState();
     return GridView.builder(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -117,28 +132,48 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         mainAxisSpacing: 24,
         childAspectRatio: 165 / 169,
       ),
-      itemCount: _teachers.length,
+      itemCount: entries.length,
       itemBuilder: (context, i) {
-        final teacher = _teachers[i];
+        final entry = entries[i];
+        final teacher = FavoriteTeacherEntity(
+          id: entry.itemId,
+          name: entry.title,
+          bio: entry.meta,
+          price: 0,
+          rating: 0,
+          image: entry.image,
+        );
         return FavoriteTeacherCard(
           teacher: teacher,
-          onRemove: () => _removeTeacher(teacher.id),
+          onRemove: () => _remove(entry),
         );
       },
     );
   }
 
-  Widget _buildLessonsList() {
-    if (_lessons.isEmpty) return const _EmptyState();
+  Widget _buildLessonsList(List<FavoriteEntryEntity> entries) {
+    if (entries.isEmpty) return const _EmptyState();
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-      itemCount: _lessons.length,
+      itemCount: entries.length,
       separatorBuilder: (_, __) => const SizedBox(height: 24),
       itemBuilder: (context, i) {
-        final lesson = _lessons[i];
+        final entry = entries[i];
+        final lesson = FavoriteLessonEntity(
+          id: entry.itemId,
+          lessonTitle: entry.title,
+          subject: entry.meta,
+          teacherName: entry.subtitle,
+          image: entry.image,
+        );
         return FavoriteLessonCard(
           lesson: lesson,
-          onRemove: () => _removeLesson(lesson.id),
+          onTap: () => Navigator.pushNamed(
+            context,
+            CourseDetailScreen.routeName,
+            arguments: entry.itemId,
+          ),
+          onRemove: () => _remove(entry),
         );
       },
     );

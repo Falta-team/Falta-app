@@ -3,6 +3,7 @@ import 'package:falta_app/features/courses/domain/entities/courses_entity.dart';
 import 'package:falta_app/features/courses/domain/providers/courses_provider.dart';
 import 'package:falta_app/features/courses/presentation/screens/course_detail_screen.dart';
 import 'package:falta_app/features/courses/presentation/widgets/instructor_card.dart';
+import 'package:falta_app/features/favorites/domain/providers/favorites_provider.dart';
 import 'package:falta_app/utils/extensions/extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -243,6 +244,9 @@ class _InstructorsScreenState extends ConsumerState<InstructorsScreen> {
                     itemCount: filtered.length,
                     itemBuilder: (context, i) {
                       final course = filtered[i];
+                      final favoritesAsync = ref.watch(favoritesListProvider);
+                      final favNotifier =
+                          ref.read(favoritesListProvider.notifier);
                       // InstructorCard keeps its original Map-based API
                       // and layout untouched — we just feed it real
                       // course/instructor data instead of the mock list.
@@ -252,12 +256,31 @@ class _InstructorsScreenState extends ConsumerState<InstructorsScreen> {
                         'rating': course.rating,
                         'price': course.price,
                         'image': course.image,
-                        'saved': false,
+                        'saved': favNotifier.isFavorited('course', course.id),
                       };
                       return InstructorCard(
                         name: course.instructorName,
                         instructor: instructorMap,
-                        onSave: () {},
+                        onSave: favoritesAsync.isLoading ||
+                                favNotifier.isPending('course', course.id)
+                            ? () {}
+                            : () async {
+                                try {
+                                  await favNotifier.toggle(
+                                    itemType: 'course',
+                                    itemId: course.id,
+                                    title: course.title,
+                                    subtitle: course.instructorName,
+                                    image: course.image,
+                                    meta: course.subject,
+                                  );
+                                } catch (e) {
+                                  if (!context.mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text(e.toString())),
+                                  );
+                                }
+                              },
                         onTap: () => Navigator.pushNamed(
                           context,
                           CourseDetailScreen.routeName,

@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:falta_app/core/theme/app_colors.dart';
 import 'package:falta_app/features/exams/domain/entities/exam_question_entity.dart';
+import 'package:falta_app/core/pref/shared_pref_controller.dart';
+import 'package:falta_app/features/exams/data/repositories/exams_repository_impl.dart';
 import 'package:falta_app/features/exams/domain/providers/exams_provider.dart';
 import 'package:falta_app/features/exams/presentation/screens/exam_result_screen.dart';
 import 'package:falta_app/features/exams/presentation/widgets/exam_app_bar.dart';
@@ -40,6 +42,8 @@ class _ExamSessionScreenState extends ConsumerState<ExamSessionScreen> {
 
   List<ExamQuestionEntity> _questions = const [];
   int _currentIndex = 0;
+  /// خريطة questionId → correctOptionId (لو الـ API بيرجعها)
+  Map<String, String> _correctAnswers = const {};
 
   Duration _total = Duration.zero;
   Duration _remaining = Duration.zero;
@@ -64,6 +68,12 @@ class _ExamSessionScreenState extends ConsumerState<ExamSessionScreen> {
     if (_attemptId == attemptId) return;
     _attemptId = attemptId;
     _questions = questions;
+    // احفظ الإجابات الصحيحة لو موجودة في الـ start response
+    _correctAnswers = {
+      for (final q in questions)
+        for (final o in q.options)
+          if (o.isCorrect) q.id: o.id,
+    };
     _currentIndex = 0;
     _elapsedSeconds = 0;
     _total = Duration(minutes: timeLimitMinutes > 0 ? timeLimitMinutes : widget.timeLimitFallback);
@@ -109,19 +119,30 @@ class _ExamSessionScreenState extends ConsumerState<ExamSessionScreen> {
     if (_submitting || _attemptId == null) return;
     setState(() => _submitting = true);
 
+    // استخدم Repository مباشرة بدون Riverpod provider
+    // عشان نتجنب مشكلة ref.disposed بعد الـ await
+    final repository     = ref.read(examsRepositoryProvider);
+    final token          = SharedPrefController().accessToken;
+    final attemptId      = _attemptId!;
+    final elapsedSeconds = _elapsedSeconds;
+    final questions      = List.of(_questions);
+    final subjectTitle   = widget.subjectTitle;
+
     try {
-      final result =
-      await ref.read(examSubmitProvider(widget.examId).notifier).submit(
-        attemptId: _attemptId!,
-        timeTakenSeconds: _elapsedSeconds,
-        answeredQuestions: _questions,
+      final result = await repository.submitExam(
+        examId:           widget.examId,
+        attemptId:        attemptId,
+        timeTakenSeconds: elapsedSeconds,
+        answeredQuestions: questions,
+        token:            token,
+        correctAnswers:   _correctAnswers,
       );
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute<void>(
           builder: (_) => ExamResultScreen(
             result: result,
-            subjectTitle: widget.subjectTitle,
+            subjectTitle: subjectTitle,
           ),
         ),
       );
@@ -131,8 +152,6 @@ class _ExamSessionScreenState extends ConsumerState<ExamSessionScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.toString())),
       );
-      // Keep the countdown going after a failed submit so the student
-      // can retry "إنهاء" instead of losing the attempt outright.
       if (_remaining.inSeconds > 0) _startTimer();
     }
   }

@@ -74,7 +74,7 @@ class MyApp extends StatelessWidget {
         theme: buildFaltaTheme().copyWith(
           scaffoldBackgroundColor: AppColors.backgroundAppColor,
         ),
-        locale: const Locale('ar'),
+        locale: const Locale('en'),
         supportedLocales: const [Locale('ar'), Locale('en')],
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,

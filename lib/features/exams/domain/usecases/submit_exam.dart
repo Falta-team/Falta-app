@@ -16,6 +16,7 @@ class SubmitExam {
     required int timeTakenSeconds,
     required List<ExamQuestionEntity> answeredQuestions,
     required String token,
+    Map<String, String> correctAnswers = const {},
   }) {
     return _repository.submitExam(
       examId: examId,
@@ -23,6 +24,7 @@ class SubmitExam {
       timeTakenSeconds: timeTakenSeconds,
       answeredQuestions: answeredQuestions,
       token: token,
+      correctAnswers: correctAnswers,
     );
   }
 }
