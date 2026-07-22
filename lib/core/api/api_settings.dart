@@ -59,8 +59,21 @@ class ApiSettings {
   static String aiRecommendation(String id) => '$baseUrl/ai/recommendations/$id';
 
   // ── Subscriptions ────────────────────────────────────────────────────────────
-  static const String activateCard   = '$baseUrl/subscriptions/activate';
+  static const String activateCard        = '$baseUrl/subscriptions/activate';
   static const String subscriptionStatus  = '$baseUrl/subscriptions/status';
+  static const String subscriptionHistory = '$baseUrl/subscriptions/history';
+  static const String createCards         = '$baseUrl/subscriptions/cards';
+
+  // ── AI (instructor) ─────────────────────────────────────────────────────────
+  static const String aiGenerateQuestions = '$baseUrl/ai/generate-questions';
+
+  // ── Admin ───────────────────────────────────────────────────────────────────
+  static const String adminStats = '$baseUrl/admin/stats';
+  static const String adminUsers = '$baseUrl/admin/users';
+  static String adminUserRole(String userId) =>
+      '$adminUsers/$userId/role';
+  static String adminUserSubscription(String userId) =>
+      '$adminUsers/$userId/subscription';
 
   // ── Headers ─────────────────────────────────────────────────────────────────
   static Map<String, String> get jsonHeaders => {

@@ -4,6 +4,7 @@ import 'package:falta_app/features/profile/data/repositories/profile_repository_
 import 'package:falta_app/features/profile/domain/entities/app_settings_entity.dart';
 import 'package:falta_app/features/profile/domain/usecases/get_settings.dart';
 import 'package:falta_app/features/profile/domain/usecases/save_settings.dart';
+import 'package:falta_app/features/profile/presentation/screens/change_password_screen.dart';
 import 'package:falta_app/features/profile/presentation/widgets/difficulty_bottom_sheet.dart';
 import 'package:falta_app/features/profile/presentation/widgets/settings_tile.dart';
 import 'package:flutter/material.dart';
@@ -116,6 +117,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     value: settings.soundEnabled,
                     onChanged: (v) =>
                         _update(settings.copyWith(soundEnabled: v)),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                SettingsTile(
+                  iconAsset: 'assets/icons/profile/ic_privacy.svg',
+                  title: 'تغيير كلمة المرور',
+                  subtitle: 'تحديث كلمة المرور الحالية',
+                  onTap: () => Navigator.of(context).pushNamed(
+                    ChangePasswordScreen.routeName,
+                  ),
+                  trailing: const Icon(
+                    Icons.chevron_left,
+                    color: AppColors.textSecondary,
                   ),
                 ),
               ],

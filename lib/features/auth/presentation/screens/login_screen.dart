@@ -1,9 +1,9 @@
+import 'package:falta_app/core/navigation/role_home.dart';
 import 'package:falta_app/features/auth/domain/bloc/auth_bloc.dart';
 import 'package:falta_app/features/auth/presentation/screens/forget_password_screen.dart';
 import 'package:falta_app/features/auth/presentation/screens/register_screen.dart';
 import 'package:falta_app/features/auth/presentation/widgets/custom_button.dart';
 import 'package:falta_app/features/auth/presentation/widgets/custom_text_field.dart';
-import 'package:falta_app/features/home/presentation/screens/home_screen.dart';
 import 'package:falta_app/utils/extensions/extensions.dart';
 import 'package:falta_app/utils/formatters/phone_formatter.dart';
 import 'package:flutter/material.dart';
@@ -48,11 +48,7 @@ class _LoginScreenState extends State<LoginScreen> {
         listener: (context, state) {
           // ── Success → Home ───────────────────────────────────────────────
           if (state is LoginSuccessState) {
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (_) => const HomeScreen()),
-                  (route) => false,
-            );
+            goToRoleHome(context);
           }
           // ── Failure → SnackBar ────────────────────────────────────────────
           if (state is LoginFailureState) {

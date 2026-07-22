@@ -8,12 +8,14 @@ class ExamResultEntity {
     required this.total,
     required this.message,
     required this.questions,
+    this.attemptId,
   });
 
   final int score;
   final int total;
   final String message;
   final List<ExamQuestionEntity> questions;
+  final String? attemptId;
 
   List<ExamQuestionEntity> filtered(ExamResultFilter filter) {
     switch (filter) {

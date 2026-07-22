@@ -1,3 +1,4 @@
+import 'package:falta_app/core/subscription/subscription_gate.dart';
 import 'package:falta_app/core/theme/app_colors.dart';
 import 'package:falta_app/features/ai/presentation/screens/ai_screen.dart';
 import 'package:falta_app/features/courses/presentation/screens/courses_screen.dart';
@@ -100,10 +101,15 @@ class MainNavigation extends StatelessWidget {
         width: 60,
 
         child: FloatingActionButton(
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const FaltaChatAIScreen()),
-          ),
+          heroTag: 'falta_main_ai_fab',
+          onPressed: () async {
+            if (!await SubscriptionGate.ensureActive(context)) return;
+            if (!context.mounted) return;
+            await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const FaltaChatAIScreen()),
+            );
+          },
           backgroundColor: AppColors.primary,
           elevation: 4,
           shape: RoundedRectangleBorder(

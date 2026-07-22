@@ -50,6 +50,9 @@ dependencies:
   flutter_local_notifications: ^22.1.0
   flutter_cache_manager: ^3.4.1
   flutter_localization: ^0.4.1
+  file_picker: ^8.1.7
+  http_parser: ^4.1.2
+  fl_chart: ^0.70.2
 
 dev_dependencies:
   flutter_test:

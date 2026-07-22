@@ -47,10 +47,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     await _load();
   }
 
-  void _comingSoon() => ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content: Text('قريباً')),
-  );
-
   // ── Logout ────────────────────────────────────────────────────────────────
   Future<void> _logout() async {
     final confirmed = await showLogoutDialog(context);
@@ -174,7 +170,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       iconAsset: 'assets/icons/profile/ic_card.svg',
                       iconSize: 24,
                       label: 'البطاقات',
-                      onTap: _comingSoon,
+                      onTap: () =>
+                          Navigator.of(context).pushNamed('/subscriptions'),
                     ),
                     ProfileMenuItem(
                       iconAsset: 'assets/icons/profile/ic_favorite.svg',
@@ -185,7 +182,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       iconAsset: 'assets/icons/profile/ic_history.svg',
                       iconSize: 24,
                       label: 'السجل',
-                      onTap: _comingSoon,
+                      onTap: () => Navigator.of(context).pushNamed('/history'),
                     ),
                     ProfileMenuItem(
                       iconAsset: 'assets/icons/profile/ic_about.svg',

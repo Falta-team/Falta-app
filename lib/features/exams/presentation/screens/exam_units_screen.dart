@@ -1,3 +1,4 @@
+import 'package:falta_app/core/subscription/subscription_gate.dart';
 import 'package:falta_app/core/theme/app_colors.dart';
 import 'package:falta_app/features/exams/domain/entities/exams_entity.dart';
 import 'package:falta_app/features/exams/domain/providers/exams_provider.dart';
@@ -49,13 +50,15 @@ class ExamUnitsScreen extends ConsumerStatefulWidget {
 class _ExamUnitsScreenState extends ConsumerState<ExamUnitsScreen> {
   String? _selectedExamId;
 
-  void _startExam(List<ExamsEntity> exams) {
+  Future<void> _startExam(List<ExamsEntity> exams) async {
     if (_selectedExamId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('اختر اختباراً أولاً')),
       );
       return;
     }
+    if (!await SubscriptionGate.ensureActive(context)) return;
+    if (!mounted) return;
     // ابحث عن الـ exam المختار عشان تمرّر timeLimit الحقيقي
     final idx = exams.indexWhere((e) => e.id == _selectedExamId);
     final timeLimit = idx >= 0 && exams[idx].timeLimit > 0

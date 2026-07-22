@@ -43,8 +43,17 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       final newRefreshToken = result.data!.refreshToken.isNotEmpty
           ? result.data!.refreshToken
           : _pref.refreshToken;
-      final newUser =
-      result.data!.user.isNotEmpty ? result.data!.user : _pref.toUserMap();
+      var newUser =
+          result.data!.user.isNotEmpty ? result.data!.user : _pref.toUserMap();
+
+      if (newUser['role'] == null) {
+        final profile = await _api.getProfile(
+          accessToken: result.data!.accessToken,
+        );
+        if (profile.success && profile.data != null) {
+          newUser = {...newUser, ...profile.data!};
+        }
+      }
 
       await _pref.saveSession(
         accessToken:  result.data!.accessToken,
@@ -79,6 +88,28 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         refreshToken: result.data!.refreshToken,
         user:         result.data!.user,
       );
+      // لو الـ login ما رجّع role، نجيبها من البروفايل
+      if (result.data!.user['role'] == null) {
+        final profile = await _api.getProfile(
+          accessToken: result.data!.accessToken,
+        );
+        if (profile.success && profile.data != null) {
+          final data = profile.data!;
+          final user = Map<String, dynamic>.from(result.data!.user)
+            ..addAll(data);
+          await _pref.saveSession(
+            accessToken:  result.data!.accessToken,
+            refreshToken: result.data!.refreshToken,
+            user:         user,
+          );
+          emit(LoginSuccessState(AuthTokens(
+            accessToken:  result.data!.accessToken,
+            refreshToken: result.data!.refreshToken,
+            user:         user,
+          )));
+          return;
+        }
+      }
       emit(LoginSuccessState(result.data!));
     } else {
       emit(LoginFailureState(result.error ?? 'حدث خطأ غير متوقع'));

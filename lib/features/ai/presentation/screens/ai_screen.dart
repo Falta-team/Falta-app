@@ -1,4 +1,6 @@
+import 'package:falta_app/core/subscription/subscription_gate.dart';
 import 'package:falta_app/core/theme/app_colors.dart';
+import 'package:falta_app/features/ai/data/sources/ai_remote_data_source.dart';
 import 'package:falta_app/features/ai/presentation/widgets/typing_indecator_widget.dart';
 import 'package:falta_app/utils/extensions/extensions.dart';
 import 'package:falta_app/utils/extensions/strings.dart';
@@ -13,22 +15,17 @@ class FaltaChatAIScreen extends StatefulWidget {
 }
 
 class _FaltaChatScreenState extends State<FaltaChatAIScreen> {
-
   final _msgController = TextEditingController();
-  final _scrollCtrl    = ScrollController();
-  bool _isTyping       = false;
+  final _scrollCtrl = ScrollController();
+  final _ai = AiRemoteDataSource();
+  bool _isTyping = false;
+  String? _sessionId;
 
   final List<_ChatMessage> _messages = [
-    _ChatMessage(text: 'Hello FaltaChat how are you today?', isUser: true),
-    _ChatMessage(text: "Hello,i'm fine,how can i help you?", isUser: false),
-    _ChatMessage(text: 'What is the best programming language?', isUser: true),
     _ChatMessage(
-      text:
-      'There are many programming languages in the market that are used in designing and building websites, various applications and other tasks. All these languages are popular in their place and in the way they are used, and how many programmers learn and use them.',
+      text: 'مرحباً! أنا مساعد فلتا الدراسي. اسألني عن أي مادة توجيهي.',
       isUser: false,
     ),
-    _ChatMessage(text: 'So explain to me more', isUser: true),
-    _ChatMessage(text: '...', isUser: false, isTyping: true),
   ];
 
   @override
@@ -38,9 +35,11 @@ class _FaltaChatScreenState extends State<FaltaChatAIScreen> {
     super.dispose();
   }
 
-  void _sendMessage() {
+  Future<void> _sendMessage() async {
     final text = _msgController.text.trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty || _isTyping) return;
+    if (!await SubscriptionGate.ensureActive(context)) return;
+    if (!mounted) return;
     setState(() {
       _messages.removeWhere((m) => m.isTyping);
       _messages.add(_ChatMessage(text: text, isUser: true));
@@ -48,20 +47,31 @@ class _FaltaChatScreenState extends State<FaltaChatAIScreen> {
       _isTyping = true;
     });
     _msgController.clear();
+    _scrollToBottom();
 
-    // Simulate AI response
-    Future.delayed(const Duration(seconds: 2), () {
+    try {
+      final result = await _ai.ask(
+        question: text,
+        sessionId: _sessionId,
+      );
+      if (!mounted) return;
+      _sessionId = result.sessionId ?? _sessionId;
+      setState(() {
+        _messages.removeWhere((m) => m.isTyping);
+        _messages.add(_ChatMessage(text: result.answer, isUser: false));
+        _isTyping = false;
+      });
+    } catch (e) {
       if (!mounted) return;
       setState(() {
         _messages.removeWhere((m) => m.isTyping);
         _messages.add(_ChatMessage(
-          text: 'شكراً على سؤالك! سأجيب عليه بأفضل ما يمكنني.',
+          text: e.toString().replaceFirst('Exception: ', ''),
           isUser: false,
         ));
         _isTyping = false;
       });
-      _scrollToBottom();
-    });
+    }
     _scrollToBottom();
   }
 

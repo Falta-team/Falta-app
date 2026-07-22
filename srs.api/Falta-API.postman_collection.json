@@ -1,0 +1,664 @@
+{
+  "info": {
+    "name": "Falta API",
+    "description": "Falta — Tawjihi Education Platform API\n\nLocal:  http://localhost:3000/api/v1\nProd:   https://falta-api.onrender.com/api/v1\n\nSwitch environments by editing the `baseUrl` collection variable\n(use `localUrl` or `prodUrl` values below).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "https://falta-api.onrender.com/api/v1" },
+    { "key": "localUrl", "value": "http://localhost:3000/api/v1" },
+    { "key": "prodUrl", "value": "https://falta-api.onrender.com/api/v1" },
+    { "key": "accessToken", "value": "" },
+    { "key": "refreshToken", "value": "" },
+    { "key": "courseId", "value": "20000000-0000-0000-0000-000000000001" },
+    { "key": "examId", "value": "40000000-0000-0000-0000-000000000001" },
+    { "key": "attemptId", "value": "" },
+    { "key": "instructorId", "value": "10000000-0000-0000-0000-000000000001" },
+    { "key": "videoId", "value": "30000000-0000-0000-0000-000000000001" },
+    { "key": "commentId", "value": "" },
+    { "key": "favoriteId", "value": "" },
+    { "key": "notificationId", "value": "" },
+    { "key": "aiSessionId", "value": "" },
+    { "key": "userId", "value": "" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "00 — Health",
+      "item": [
+        {
+          "name": "GET Health Check",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "https://falta-api.onrender.com/health"
+          }
+        }
+      ]
+    },
+    {
+      "name": "01 — Auth",
+      "item": [
+        {
+          "name": "POST Register",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"0599776655\",\n  \"firstName\": \"محمد\",\n  \"lastName\": \"نجار\",\n  \"password\": \"Test1234\",\n  \"academicBranch\": \"scientific\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/register"
+          }
+        },
+        {
+          "name": "POST Verify Phone",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"+970599776655\",\n  \"code\": \"1234\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/verify-phone"
+          }
+        },
+        {
+          "name": "POST Forgot Password",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"+970599776655\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/forgot-password"
+          }
+        },
+        {
+          "name": "POST Reset Password",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"+970599776655\",\n  \"code\": \"1234\",\n  \"newPassword\": \"NewPass123\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/reset-password"
+          }
+        },
+        {
+          "name": "POST Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data?.accessToken) {",
+                  "  pm.collectionVariables.set('accessToken', res.data.accessToken);",
+                  "  pm.collectionVariables.set('refreshToken', res.data.refreshToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"0599887766\",\n  \"password\": \"Test1234\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        },
+        {
+          "name": "POST Refresh Token",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/refresh-token"
+          }
+        },
+        {
+          "name": "POST Logout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/logout"
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 — Profile",
+      "item": [
+        {
+          "name": "GET My Profile",
+          "request": { "method": "GET", "url": "{{baseUrl}}/users/profile" }
+        },
+        {
+          "name": "PUT Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"محمد\",\n  \"lastName\": \"نجار\",\n  \"email\": \"mohammed@email.com\",\n  \"notificationPreferences\": {\n    \"examReminders\": true,\n    \"newContent\": true\n  }\n}"
+            },
+            "url": "{{baseUrl}}/users/profile"
+          }
+        },
+        {
+          "name": "PUT Change Password",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"Test1234\",\n  \"newPassword\": \"NewPass123\"\n}"
+            },
+            "url": "{{baseUrl}}/users/password"
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 — Subscriptions",
+      "item": [
+        {
+          "name": "POST Activate Card",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cardCode\": \"FALTA-TEST-002\"\n}"
+            },
+            "url": "{{baseUrl}}/subscriptions/activate"
+          }
+        },
+        {
+          "name": "GET Subscription Status",
+          "request": { "method": "GET", "url": "{{baseUrl}}/subscriptions/status" }
+        },
+        {
+          "name": "GET Subscription History",
+          "request": { "method": "GET", "url": "{{baseUrl}}/subscriptions/history" }
+        },
+        {
+          "name": "POST Create Cards (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"count\": 3,\n  \"subscriptionType\": \"standard\",\n  \"durationDays\": 30\n}"
+            },
+            "url": "{{baseUrl}}/subscriptions/cards"
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 — Instructors",
+      "item": [
+        {
+          "name": "GET List Instructors",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{baseUrl}}/instructors"
+          }
+        },
+        {
+          "name": "GET Instructor By ID",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{baseUrl}}/instructors/{{instructorId}}"
+          }
+        },
+        {
+          "name": "POST Create Instructor (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"أ. أحمد علي\",\n  \"credentials\": \"بكالوريوس فيزياء\",\n  \"expertiseAreas\": \"فيزياء\",\n  \"biography\": \"معلم توجيهي\"\n}"
+            },
+            "url": "{{baseUrl}}/instructors"
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 — Courses",
+      "item": [
+        {
+          "name": "GET List Courses",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{baseUrl}}/courses?subject=math"
+          }
+        },
+        {
+          "name": "GET Course By ID",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{baseUrl}}/courses/{{courseId}}"
+          }
+        },
+        {
+          "name": "GET Courses By Subject",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{baseUrl}}/courses/subject/math"
+          }
+        },
+        {
+          "name": "POST Create Course (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data?.course?.id) pm.collectionVariables.set('courseId', res.data.course.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"رياضيات التوجيهي - الفصل الأول\",\n  \"subject\": \"math\",\n  \"description\": \"شرح وحدة الجبر\",\n  \"academicTrack\": \"scientific\",\n  \"instructorId\": \"{{instructorId}}\",\n  \"difficultyLevel\": \"medium\"\n}"
+            },
+            "url": "{{baseUrl}}/courses"
+          }
+        },
+        {
+          "name": "POST Enroll Course",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/courses/{{courseId}}/enroll"
+          }
+        },
+        {
+          "name": "GET Course Videos",
+          "request": { "method": "GET", "url": "{{baseUrl}}/courses/{{courseId}}/videos" }
+        },
+        {
+          "name": "GET Course Progress",
+          "request": { "method": "GET", "url": "{{baseUrl}}/courses/{{courseId}}/progress" }
+        }
+      ]
+    },
+    {
+      "name": "06 — Videos",
+      "item": [
+        {
+          "name": "POST Upload Video (Admin)",
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "video", "type": "file", "src": "" },
+                { "key": "courseId", "value": "{{courseId}}", "type": "text" },
+                { "key": "title", "value": "الدرس الأول", "type": "text" },
+                { "key": "sequenceOrder", "value": "1", "type": "text" }
+              ]
+            },
+            "url": "{{baseUrl}}/videos/upload"
+          }
+        },
+        {
+          "name": "GET Video Stream",
+          "request": { "method": "GET", "url": "{{baseUrl}}/videos/{{videoId}}/stream" }
+        },
+        {
+          "name": "POST Record View",
+          "request": { "method": "POST", "url": "{{baseUrl}}/videos/{{videoId}}/view" }
+        },
+        {
+          "name": "GET Video Comments",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/videos/{{videoId}}/comments?page=1&limit=20"
+          }
+        },
+        {
+          "name": "POST Add Video Comment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data?.comment?.id) pm.collectionVariables.set('commentId', res.data.comment.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"body\": \"شرح ممتاز، شكراً للمعلم\"\n}"
+            },
+            "url": "{{baseUrl}}/videos/{{videoId}}/comments"
+          }
+        },
+        {
+          "name": "PUT Update Video Comment",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"body\": \"تم تعديل التعليق: شرح ممتاز\"\n}"
+            },
+            "url": "{{baseUrl}}/videos/{{videoId}}/comments/{{commentId}}"
+          }
+        },
+        {
+          "name": "DELETE Video Comment",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/videos/{{videoId}}/comments/{{commentId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 — Exams",
+      "item": [
+        {
+          "name": "GET List Exams",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": "{{baseUrl}}/exams"
+          }
+        },
+        {
+          "name": "POST Start Exam",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data?.attempt?.id) pm.collectionVariables.set('attemptId', res.data.attempt.id);",
+                  "if (res.data?.exam?.id) pm.collectionVariables.set('examId', res.data.exam.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/exams/{{examId}}/start"
+          }
+        },
+        {
+          "name": "POST Submit Exam",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"attemptId\": \"{{attemptId}}\",\n  \"timeTaken\": 300,\n  \"answers\": [\n    { \"questionId\": \"UUID-1\", \"answer\": \"a\" },\n    { \"questionId\": \"UUID-2\", \"answer\": \"b\" }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/exams/{{examId}}/submit"
+          }
+        },
+        {
+          "name": "GET Exam History",
+          "request": { "method": "GET", "url": "{{baseUrl}}/exams/attempts/history" }
+        },
+        {
+          "name": "POST Create Exam (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data?.exam?.id) pm.collectionVariables.set('examId', res.data.exam.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"امتحان فيزياء\",\n  \"subject\": \"physics\",\n  \"year\": \"2025/2026\",\n  \"academicTrack\": \"scientific\",\n  \"totalQuestions\": 10,\n  \"timeLimit\": 30,\n  \"difficultyLevel\": \"medium\"\n}"
+            },
+            "url": "{{baseUrl}}/exams"
+          }
+        },
+        {
+          "name": "POST Add Question (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionText\": \"ما قانون نيوتن الثاني؟\",\n  \"optionA\": \"F = ma\",\n  \"optionB\": \"F = mv\",\n  \"optionC\": \"F = m/a\",\n  \"optionD\": \"F = a/m\",\n  \"correctAnswer\": \"a\",\n  \"explanation\": \"القوة = الكتلة × التسارع\",\n  \"topicTag\": \"قوانين نيوتن\"\n}"
+            },
+            "url": "{{baseUrl}}/exams/{{examId}}/questions"
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 — Favorites",
+      "item": [
+        {
+          "name": "GET My Favorites",
+          "request": { "method": "GET", "url": "{{baseUrl}}/favorites" }
+        },
+        {
+          "name": "POST Add Favorite",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itemType\": \"course\",\n  \"itemId\": \"{{courseId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/favorites"
+          }
+        },
+        {
+          "name": "DELETE Remove Favorite",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/favorites/{{favoriteId}}" }
+        }
+      ]
+    },
+    {
+      "name": "09 — Notifications",
+      "item": [
+        {
+          "name": "GET My Notifications",
+          "request": { "method": "GET", "url": "{{baseUrl}}/notifications" }
+        },
+        {
+          "name": "PUT Mark As Read",
+          "request": { "method": "PUT", "url": "{{baseUrl}}/notifications/{{notificationId}}/read" }
+        },
+        {
+          "name": "PUT Mark All Read",
+          "request": { "method": "PUT", "url": "{{baseUrl}}/notifications/read-all" }
+        },
+        {
+          "name": "DELETE Notification",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/notifications/{{notificationId}}" }
+        }
+      ]
+    },
+    {
+      "name": "10 — AI",
+      "item": [
+        {
+          "name": "POST Ask AI (Study Assistant)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data?.sessionId) pm.collectionVariables.set('aiSessionId', res.data.sessionId);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"math\",\n  \"question\": \"اشرح لي قانون فيثاغورس مع مثال\"\n}"
+            },
+            "url": "{{baseUrl}}/ai/ask"
+          }
+        },
+        {
+          "name": "POST Ask AI (Continue Session)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"math\",\n  \"sessionId\": \"{{aiSessionId}}\",\n  \"question\": \"أعطني مثالاً آخر أصعب\"\n}"
+            },
+            "url": "{{baseUrl}}/ai/ask"
+          }
+        },
+        {
+          "name": "GET AI Sessions",
+          "request": { "method": "GET", "url": "{{baseUrl}}/ai/sessions" }
+        },
+        {
+          "name": "GET AI Session Detail",
+          "request": { "method": "GET", "url": "{{baseUrl}}/ai/sessions/{{aiSessionId}}" }
+        },
+        {
+          "name": "POST Generate Questions (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"math\",\n  \"topic\": \"المشتقات\",\n  \"count\": 3,\n  \"difficultyLevel\": \"medium\",\n  \"examId\": \"{{examId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/ai/generate-questions"
+          }
+        },
+        {
+          "name": "POST Analyze Performance",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"attemptId\": \"{{attemptId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/ai/analyze-performance"
+          }
+        },
+        {
+          "name": "GET Recommendation by Attempt",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/ai/recommendations/{{attemptId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "11 — Admin",
+      "item": [
+        {
+          "name": "GET Dashboard Stats",
+          "request": { "method": "GET", "url": "{{baseUrl}}/admin/stats" }
+        },
+        {
+          "name": "GET Users (paginated)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/users?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" },
+                { "key": "role", "value": "student", "disabled": true },
+                { "key": "search", "value": "محمد", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "PATCH Update User Role",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"instructor\"\n}"
+            },
+            "url": "{{baseUrl}}/admin/users/{{userId}}/role"
+          }
+        },
+        {
+          "name": "PATCH Update User Subscription",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subscriptionStatus\": \"active\"\n}"
+            },
+            "url": "{{baseUrl}}/admin/users/{{userId}}/subscription"
+          }
+        }
+      ]
+    }
+  ]
+}

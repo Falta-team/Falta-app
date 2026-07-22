@@ -52,6 +52,7 @@ class ExamResultModel {
       total: total,
       message: message,
       questions: mergedQuestions,
+      attemptId: json['attemptId']?.toString(),
     );
   }
 

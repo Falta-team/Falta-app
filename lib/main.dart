@@ -19,11 +19,17 @@ import 'package:falta_app/features/exams/presentation/screens/past_exams_archive
 import 'package:falta_app/features/history/presentation/screens/history_detail_screen.dart';
 import 'package:falta_app/features/history/presentation/screens/history_subjects_screen.dart';
 import 'package:falta_app/features/home/presentation/screens/home_screen.dart';
+import 'package:falta_app/features/admin/presentation/screens/admin_shell_screen.dart';
+import 'package:falta_app/features/admin/presentation/screens/admin_users_screen.dart';
+import 'package:falta_app/features/admin/presentation/screens/admin_cards_screen.dart';
+import 'package:falta_app/features/instructor/presentation/screens/instructor_generate_screen.dart';
+import 'package:falta_app/features/instructor/presentation/screens/instructor_shell_screen.dart';
 import 'package:falta_app/features/notifications/presentation/screens/notifications_screen.dart';
 import 'package:falta_app/features/notifications/service/local_notifications_service.dart';
 import 'package:falta_app/features/onboarding/presentation/screens/onboarding_screen.dart';
 import 'package:falta_app/features/onboarding/service/onboarding_service.dart';
 import 'package:falta_app/features/profile/presentation/screens/about_screen.dart';
+import 'package:falta_app/features/profile/presentation/screens/change_password_screen.dart';
 import 'package:falta_app/features/profile/presentation/screens/edit_profile_screen.dart';
 import 'package:falta_app/features/profile/presentation/screens/favorites_screen.dart';
 import 'package:falta_app/features/profile/presentation/screens/privacy_screen.dart';
@@ -31,6 +37,7 @@ import 'package:falta_app/features/profile/presentation/screens/profile_screen.d
 import 'package:falta_app/features/profile/presentation/screens/settings_screen.dart';
 import 'package:falta_app/features/profile/presentation/screens/support_screen.dart';
 import 'package:falta_app/features/splash/splash_screen.dart';
+import 'package:falta_app/features/subscriptions/presentation/screens/subscriptions_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -90,6 +97,14 @@ class MyApp extends StatelessWidget {
         home: SplashScreen(isFirstTime: isFirstTime),
         routes: {
           '/home': (_) => const HomeScreen(),
+          InstructorShellScreen.routeName: (_) => const InstructorShellScreen(),
+          AdminShellScreen.routeName: (_) => const AdminShellScreen(),
+          AdminUsersScreen.routeName: (_) => const AdminUsersScreen(),
+          AdminCardsScreen.routeName: (_) => const AdminCardsScreen(),
+          InstructorGenerateScreen.routeName: (_) =>
+              const InstructorGenerateScreen(),
+          SubscriptionsScreen.routeName: (_) => const SubscriptionsScreen(),
+          ChangePasswordScreen.routeName: (_) => const ChangePasswordScreen(),
           '/onBoarding': (_) => const OnboardingScreen(),
           '/login': (_) => const LoginScreen(),
           '/register': (_) => const RegisterScreen(),

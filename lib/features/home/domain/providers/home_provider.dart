@@ -33,7 +33,11 @@ class HomeDashboardNotifier extends AsyncNotifier<HomeEntity> {
       throw const HomeApiException('يجب تسجيل الدخول أولاً');
     }
 
-    return GetHome(ref.read(homeRepositoryProvider))(token: token);
+    final home =
+        await GetHome(ref.read(homeRepositoryProvider))(token: token);
+    await SharedPrefController()
+        .setSubscriptionActive(home.subscriptionActive);
+    return home;
   }
 
   Future<void> refresh() async {

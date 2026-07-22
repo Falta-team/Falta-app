@@ -1,6 +1,6 @@
+import 'package:falta_app/core/navigation/role_home.dart';
 import 'package:falta_app/features/auth/domain/bloc/auth_bloc.dart';
 import 'package:falta_app/features/auth/presentation/screens/login_screen.dart';
-import 'package:falta_app/features/home/presentation/screens/home_screen.dart';
 import 'package:falta_app/features/onboarding/presentation/screens/onboarding_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -105,9 +105,9 @@ class _SplashScreenState extends State<SplashScreen>
       if (!mounted) return;
 
       if (state is AlreadyAuthenticatedState) {
-        // ✅ في توكن صالح → HomeScreen مباشرة
+        // ✅ في توكن صالح → الشاشة حسب الرول
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
+          MaterialPageRoute(builder: (_) => roleHomeScreen()),
               (route) => false,
         );
         return;

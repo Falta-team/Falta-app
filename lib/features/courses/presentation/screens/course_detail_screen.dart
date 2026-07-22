@@ -1,3 +1,4 @@
+import 'package:falta_app/core/subscription/subscription_gate.dart';
 import 'package:falta_app/core/theme/app_colors.dart';
 import 'package:falta_app/features/courses/domain/entities/courses_entity.dart';
 import 'package:falta_app/features/courses/domain/entities/video_entity.dart';
@@ -7,6 +8,7 @@ import 'package:falta_app/features/courses/presentation/widgets/course_fullscree
 import 'package:falta_app/features/courses/presentation/widgets/course_video_header.dart';
 import 'package:falta_app/features/courses/presentation/widgets/course_videos_tab.dart';
 import 'package:falta_app/features/favorites/domain/providers/favorites_provider.dart';
+import 'package:falta_app/features/instructor/data/instructor_api_controller.dart';
 import 'package:falta_app/utils/extensions/extensions.dart';
 import 'package:falta_app/utils/video/video_cache_manager.dart';
 import 'package:falta_app/utils/video/video_player_controller_factory.dart';
@@ -47,10 +49,38 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
   // ── Fullscreen (landscape) mode ──────────────────────────────────────
   bool _isFullScreen = false;
   final TextEditingController _commentController = TextEditingController();
+  final _instructorApi = InstructorApiController();
+  double? _progressPercent;
+  String? _progressLabel;
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _loadProgress();
+  }
+
+  Future<void> _loadProgress() async {
+    try {
+      final data = await _instructorApi.getCourseProgress(widget.courseId);
+      if (!mounted) return;
+      final percent = (data['progressPercent'] as num?)?.toDouble() ??
+          (data['percentage'] as num?)?.toDouble() ??
+          (data['progress'] as num?)?.toDouble();
+      final watched = data['watchedCount'] ?? data['completedVideos'];
+      final total = data['totalVideos'] ?? data['videosCount'];
+      setState(() {
+        _progressPercent = percent != null
+            ? (percent > 1 ? percent / 100 : percent)
+            : null;
+        if (watched != null && total != null) {
+          _progressLabel = 'التقدم: $watched / $total';
+        } else if (percent != null) {
+          final p = percent > 1 ? percent.round() : (percent * 100).round();
+          _progressLabel = 'التقدم: $p%';
+        }
+      });
+    } catch (_) {}
   }
   @override
   void dispose() {
@@ -253,6 +283,101 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
                         ],
                       ),
                       12.hs,
+                      if (_progressLabel != null) ...[
+                        Text(
+                          _progressLabel!,
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        if (_progressPercent != null)
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: LinearProgressIndicator(
+                              value: _progressPercent!.clamp(0.0, 1.0),
+                              minHeight: 6,
+                              backgroundColor: AppColors.border,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        12.hs,
+                      ],
+                      SizedBox(
+                        width: double.infinity,
+                        height: 40,
+                        child: Consumer(
+                          builder: (context, ref, _) {
+                            final enrollAsync =
+                                ref.watch(courseEnrollmentProvider(course.id));
+                            final loading = enrollAsync.isLoading;
+                            return ElevatedButton(
+                              onPressed: loading
+                                  ? null
+                                  : () async {
+                                      await ref
+                                          .read(
+                                            courseEnrollmentProvider(course.id)
+                                                .notifier,
+                                          )
+                                          .enroll();
+                                      if (!context.mounted) return;
+                                      final state = ref.read(
+                                        courseEnrollmentProvider(course.id),
+                                      );
+                                      state.whenOrNull(
+                                        data: (_) {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            const SnackBar(
+                                              content: Text('تم التسجيل في الكورس'),
+                                              backgroundColor: AppColors.primary,
+                                            ),
+                                          );
+                                          ref.invalidate(
+                                            courseVideosProvider(course.id),
+                                          );
+                                        },
+                                        error: (e, _) {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            SnackBar(
+                                              content: Text(e.toString()),
+                                              backgroundColor: AppColors.error,
+                                            ),
+                                          );
+                                        },
+                                      );
+                                    },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primaryBright,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                              child: loading
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : Text(
+                                      'التسجيل في الكورس',
+                                      style: GoogleFonts.inter(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                            );
+                          },
+                        ),
+                      ),
+                      12.hs,
                       Row(
                         children: [
                           const Icon(
@@ -412,6 +537,9 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
       _togglePlayPause();
       return;
     }
+    if (!await SubscriptionGate.ensureActive(context)) return;
+    if (!mounted) return;
+
     final oldController = _videoController;
     oldController?.removeListener(_onVideoTick);
 
@@ -425,10 +553,18 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
 
     await oldController?.dispose();
 
+    // Record view + prefer stream URL when the API provides one.
+    // ignore: unawaited_futures
+    _instructorApi.recordVideoView(video.id);
+    final playUrl = await _instructorApi.resolvePlayableUrl(
+      videoId: video.id,
+      fallbackUrl: video.videoUrl,
+    );
+
     // ✅ Uses VideoControllerFactory — returns cached file if available,
     // falls back to network and caches in background for next time.
     // Per graduation report NFR1.1: video start < 3 s on 4G.
-    final controller = await VideoControllerFactory.create(video.videoUrl);
+    final controller = await VideoControllerFactory.create(playUrl);
 
     try {
       await controller.initialize();
@@ -444,6 +580,7 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
       });
       controller.play();
       _preloadNextVideo(video);
+      _loadProgress();
     } catch (e) {
       if (!mounted) return;
       setState(() {
