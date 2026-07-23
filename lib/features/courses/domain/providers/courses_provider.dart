@@ -1,6 +1,7 @@
 import 'package:falta_app/core/pref/shared_pref_controller.dart';
 import 'package:falta_app/features/courses/data/repositories/courses_repository_impl.dart';
 import 'package:falta_app/features/courses/domain/entities/comment_entity.dart';
+import 'package:falta_app/features/courses/domain/entities/course_material_entity.dart';
 import 'package:falta_app/features/courses/domain/entities/courses_entity.dart';
 import 'package:falta_app/features/courses/domain/entities/video_entity.dart';
 import 'package:falta_app/features/courses/domain/repositories/courses_repository.dart';
@@ -69,6 +70,17 @@ class CoursesBySubjectNotifier extends AsyncNotifier<List<CoursesEntity>> {
     state = const AsyncLoading();
     state = await AsyncValue.guard(
           () => GetCourses(ref.read(coursesRepositoryProvider))(subject: subject),
+    );
+  }
+
+  /// Server-side search within this subject (`GET /courses?subject=&search=`).
+  Future<void> search(String query) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(
+      () => GetCourses(ref.read(coursesRepositoryProvider))(
+        subject: subject,
+        search: query,
+      ),
     );
   }
 }
@@ -240,5 +252,34 @@ class VideoCommentsNotifier extends AsyncNotifier<List<CommentEntity>> {
 
     final current = state.asData?.value ?? const <CommentEntity>[];
     state = AsyncData([newComment, ...current]);
+  }
+}
+/// `GET /courses/{id}/materials`
+final courseMaterialsProvider = AsyncNotifierProvider.family<
+    CourseMaterialsNotifier, List<CourseMaterialEntity>, String>(
+  CourseMaterialsNotifier.new,
+);
+
+class CourseMaterialsNotifier
+    extends AsyncNotifier<List<CourseMaterialEntity>> {
+  CourseMaterialsNotifier(this.courseId);
+
+  final String courseId;
+
+  @override
+  Future<List<CourseMaterialEntity>> build() async {
+    final token = SharedPrefController().accessToken;
+    if (token.isEmpty) {
+      throw const CoursesApiException('يجب تسجيل الدخول أولاً');
+    }
+    return ref.read(coursesRepositoryProvider).getCourseMaterials(
+          courseId,
+          token,
+        );
+  }
+
+  Future<void> refresh() async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(build);
   }
 }

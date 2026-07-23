@@ -23,11 +23,11 @@ class ExamsRepositoryImpl implements ExamsRepository {
 
   final ExamsRemoteDataSource remote;
 
-  // ── GET /exams ──────────────────────────────────────────────────────────
+  // ── GET /exams?subject= ────────────────────────────────────────────────
   @override
   Future<List<ExamsEntity>> getExams({String? subject}) async {
     try {
-      final result = await remote.getExams() as Map<String, dynamic>;
+      final result = await remote.getExams(subject: subject) as Map<String, dynamic>;
       final statusCode = result['statusCode'] as int;
       final body = result['body'];
 
@@ -35,12 +35,95 @@ class ExamsRepositoryImpl implements ExamsRepository {
         throw ExamsApiException(_extractMessage(body) ?? 'فشل تحميل الاختبارات');
       }
 
-      final exams = _extractList(body)
+      return _extractList(body)
           .map((e) => ExamsModel.fromJson(e as Map<String, dynamic>))
           .toList();
+    } on ExamsApiException {
+      rethrow;
+    } catch (e) {
+      throw ExamsApiException('خطأ في الاتصال: $e');
+    }
+  }
 
-      if (subject == null || subject.isEmpty) return exams;
-      return exams.where((e) => e.subject == subject).toList();
+  // ── GET /exams/{id} ────────────────────────────────────────────────────
+  @override
+  Future<ExamsEntity> getExamById(String examId) async {
+    try {
+      final result = await remote.getExamById(examId) as Map<String, dynamic>;
+      final statusCode = result['statusCode'] as int;
+      final body = result['body'];
+
+      if (!ApiSettings.isSuccess(statusCode)) {
+        throw ExamsApiException(_extractMessage(body) ?? 'فشل تحميل الاختبار');
+      }
+
+      final data = _extractObject(body);
+      final exam = data['exam'] is Map<String, dynamic>
+          ? data['exam'] as Map<String, dynamic>
+          : data;
+      return ExamsModel.fromJson(exam);
+    } on ExamsApiException {
+      rethrow;
+    } catch (e) {
+      throw ExamsApiException('خطأ في الاتصال: $e');
+    }
+  }
+
+  // ── POST /exams/{attemptId}/answers ────────────────────────────────────
+  @override
+  Future<void> saveAnswer({
+    required String attemptId,
+    required String questionId,
+    required String answer,
+    required int timeTakenSeconds,
+    required String token,
+  }) async {
+    try {
+      final result = await remote.saveAnswer(
+        attemptId: attemptId,
+        questionId: questionId,
+        answer: answer,
+        timeTakenSeconds: timeTakenSeconds,
+        token: token,
+      ) as Map<String, dynamic>;
+      final statusCode = result['statusCode'] as int;
+      final body = result['body'];
+
+      if (!ApiSettings.isSuccess(statusCode)) {
+        throw ExamsApiException(_extractMessage(body) ?? 'تعذر حفظ الإجابة');
+      }
+    } on ExamsApiException {
+      rethrow;
+    } catch (e) {
+      throw ExamsApiException('خطأ في الاتصال: $e');
+    }
+  }
+
+  // ── GET /exams/{id}/results/{attemptId} ────────────────────────────────
+  @override
+  Future<ExamResultEntity> getExamResult({
+    required String examId,
+    required String attemptId,
+    required String token,
+  }) async {
+    try {
+      final result = await remote.getExamResult(
+        examId: examId,
+        attemptId: attemptId,
+        token: token,
+      ) as Map<String, dynamic>;
+      final statusCode = result['statusCode'] as int;
+      final body = result['body'];
+
+      if (!ApiSettings.isSuccess(statusCode)) {
+        throw ExamsApiException(_extractMessage(body) ?? 'فشل تحميل النتيجة');
+      }
+
+      final resultData = _extractResultObject(body);
+      return ExamResultModel.fromJson(
+        resultData,
+        answeredQuestions: const [],
+      );
     } on ExamsApiException {
       rethrow;
     } catch (e) {
@@ -200,7 +283,13 @@ class ExamsRepositoryImpl implements ExamsRepository {
   }
 
   String? _extractMessage(dynamic body) {
-    if (body is Map<String, dynamic>) return body['message'] as String?;
+    if (body is Map<String, dynamic>) {
+      final error = body['error'];
+      if (error is Map && error['message'] != null) {
+        return error['message'].toString();
+      }
+      return body['message'] as String?;
+    }
     return null;
   }
 }

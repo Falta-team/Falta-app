@@ -67,6 +67,66 @@ class _ProfileScreenState extends State<ProfileScreen> {
     Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
   }
 
+  Future<void> _deleteAccount() async {
+    final passwordCtrl = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('حذف الحساب', style: GoogleFonts.cairo()),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'سيتم حذف حسابك نهائيًا. أدخل كلمة المرور للتأكيد.',
+              style: GoogleFonts.cairo(fontSize: 14),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: passwordCtrl,
+              obscureText: true,
+              decoration: const InputDecoration(
+                hintText: 'كلمة المرور',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('إلغاء'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('حذف', style: TextStyle(color: AppColors.error)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) {
+      passwordCtrl.dispose();
+      return;
+    }
+    final password = passwordCtrl.text;
+    passwordCtrl.dispose();
+    if (password.isEmpty) return;
+
+    try {
+      await ProfileRepositoryImpl().deleteAccount(password: password);
+      await SharedPrefController().clear();
+      if (!mounted) return;
+      Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final profile = _profile;
@@ -199,6 +259,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       iconSize: 20,
                       label: 'سياسة الخصوصية',
                       onTap: () => Navigator.of(context).pushNamed(PrivacyScreen.routeName),
+                    ),
+                    ProfileMenuItem(
+                      iconAsset: 'assets/icons/profile/ic_logout.svg',
+                      iconSize: 20,
+                      label: 'حذف الحساب',
+                      showChevron: false,
+                      onTap: _deleteAccount,
                     ),
                     ProfileMenuItem(
                       iconAsset: 'assets/icons/profile/ic_logout.svg',

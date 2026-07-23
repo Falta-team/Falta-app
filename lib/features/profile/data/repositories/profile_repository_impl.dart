@@ -1,11 +1,11 @@
+import 'dart:io';
+
 import 'package:falta_app/features/profile/data/sources/profile_local_data_source.dart';
 import 'package:falta_app/features/profile/domain/entities/app_settings_entity.dart';
 import 'package:falta_app/features/profile/domain/entities/favorite_entities.dart';
 import 'package:falta_app/features/profile/domain/entities/profile_entity.dart';
 import 'package:falta_app/features/profile/domain/repositories/profile_repository.dart';
 
-/// Concrete implementation of [ProfileRepository] backed by a local
-/// mock data source until the backend endpoints are available.
 class ProfileRepositoryImpl implements ProfileRepository {
   ProfileRepositoryImpl({ProfileLocalDataSource? dataSource})
       : _dataSource = dataSource ?? ProfileLocalDataSource();
@@ -27,6 +27,14 @@ class ProfileRepositoryImpl implements ProfileRepository {
       phone: phone,
     );
   }
+
+  @override
+  Future<ProfileEntity> uploadProfilePhoto(File file) =>
+      _dataSource.uploadProfilePhoto(file);
+
+  @override
+  Future<void> deleteAccount({required String password}) =>
+      _dataSource.deleteAccount(password: password);
 
   @override
   Future<AppSettingsEntity> getSettings() => _dataSource.fetchSettings();

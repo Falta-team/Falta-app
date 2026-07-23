@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:falta_app/core/api/api_settings.dart';
+import 'package:falta_app/utils/formatters/phone_formatter.dart';
 import 'package:http/http.dart' as http;
 
 // ── Response wrapper ──────────────────────────────────────────────────────────
@@ -52,10 +53,11 @@ class AuthApiController {
         uri,
         headers: ApiSettings.jsonHeaders,
         body: jsonEncode({
-          'phoneNumber':    phoneNumber,
-          'firstName':      firstName,
-          'lastName':       lastName,
-          'password':       password,
+          // Postman collection uses local `05xxxxxxxx` for register.
+          'phoneNumber': PhoneFormatter.toLocalFormat(phoneNumber),
+          'firstName': firstName,
+          'lastName': lastName.isEmpty ? firstName : lastName,
+          'password': password,
           'academicBranch': academicBranch,
         }),
       );
@@ -63,7 +65,9 @@ class AuthApiController {
       if (ApiSettings.isSuccess(response.statusCode)) {
         return ApiResult.success(body);
       } else {
-        return ApiResult.failure(body['message'] as String? ?? 'فشل إنشاء الحساب');
+        return ApiResult.failure(
+          _extractErrorMessage(body) ?? 'فشل إنشاء الحساب',
+        );
       }
     } catch (e) {
       return ApiResult.failure('خطأ في الاتصال: $e');
@@ -239,5 +243,31 @@ class AuthApiController {
     } catch (e) {
       return ApiResult.failure('خطأ في الاتصال: $e');
     }
+  }
+
+  /// Prefer API `message`, then nested `error`, then validation `errors` map.
+  String? _extractErrorMessage(Map<String, dynamic> body) {
+    final message = body['message']?.toString();
+    if (message != null && message.trim().isNotEmpty) return message;
+
+    final error = body['error'];
+    if (error is String && error.trim().isNotEmpty) return error;
+    if (error is Map && error['message'] != null) {
+      return error['message'].toString();
+    }
+
+    final errors = body['errors'];
+    if (errors is Map) {
+      final parts = <String>[];
+      for (final value in errors.values) {
+        if (value is List) {
+          parts.addAll(value.map((e) => e.toString()));
+        } else if (value != null) {
+          parts.add(value.toString());
+        }
+      }
+      if (parts.isNotEmpty) return parts.join('\n');
+    }
+    return null;
   }
 }

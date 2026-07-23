@@ -8,6 +8,7 @@
 class PhoneFormatter {
   const PhoneFormatter._();
 
+  /// E.164: `+970599123456`
   static String toApiFormat(String raw) {
     // Strip anything that isn't a digit (spaces, dashes, +, etc.)
     var digits = raw.trim().replaceAll(RegExp(r'[^0-9]'), '');
@@ -25,5 +26,15 @@ class PhoneFormatter {
     }
 
     return '+970$digits';
+  }
+
+  /// Local format used by `POST /auth/register` in the API collection:
+  /// `05991234567`
+  static String toLocalFormat(String raw) {
+    final e164 = toApiFormat(raw);
+    final digits = e164.replaceAll(RegExp(r'\D'), '');
+    final national =
+        digits.startsWith('970') ? digits.substring(3) : digits;
+    return '0$national';
   }
 }

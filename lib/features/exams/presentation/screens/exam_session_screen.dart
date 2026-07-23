@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:falta_app/core/theme/app_colors.dart';
 import 'package:falta_app/features/exams/domain/entities/exam_question_entity.dart';
 import 'package:falta_app/core/pref/shared_pref_controller.dart';
-import 'package:falta_app/features/exams/data/repositories/exams_repository_impl.dart';
 import 'package:falta_app/features/exams/domain/providers/exams_provider.dart';
 import 'package:falta_app/features/exams/presentation/screens/exam_result_screen.dart';
 import 'package:falta_app/features/exams/presentation/widgets/exam_app_bar.dart';
@@ -107,6 +106,28 @@ class _ExamSessionScreenState extends ConsumerState<ExamSessionScreen> {
             _questions[i],
       ];
     });
+    _autosaveAnswer(optionId);
+  }
+
+  /// Fire-and-forget autosave — failures are silent so they never block answering.
+  Future<void> _autosaveAnswer(String optionId) async {
+    final attemptId = _attemptId;
+    if (attemptId == null || attemptId.isEmpty) return;
+    final token = SharedPrefController().accessToken;
+    if (token.isEmpty) return;
+    final questionId = _current.id;
+    final elapsed = _elapsedSeconds;
+    try {
+      await ref.read(examsRepositoryProvider).saveAnswer(
+            attemptId: attemptId,
+            questionId: questionId,
+            answer: optionId,
+            timeTakenSeconds: elapsed,
+            token: token,
+          );
+    } catch (_) {
+      // Keep UX uninterrupted; final submit still sends all answers.
+    }
   }
 
   void _goTo(int index) {

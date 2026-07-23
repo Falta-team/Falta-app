@@ -86,4 +86,56 @@ class SubscriptionRemoteDataSource {
     }
     return const [];
   }
+
+  Future<List<SubscriptionPlan>> getPlans() async {
+    final response = await http.get(
+      Uri.parse(ApiSettings.subscriptionPlans),
+      headers: ApiSettings.jsonHeaders,
+    );
+    final json = jsonDecode(response.body) as Map<String, dynamic>;
+    if (!ApiSettings.isSuccess(response.statusCode)) {
+      final error = json['error'];
+      final msg = error is Map
+          ? error['message']?.toString()
+          : json['message'] as String?;
+      throw Exception(msg ?? 'فشل جلب الباقات');
+    }
+    final data = json['data'];
+    final list = data is Map<String, dynamic>
+        ? (data['plans'] as List<dynamic>? ?? const [])
+        : (data is List ? data : const []);
+    return list
+        .whereType<Map<String, dynamic>>()
+        .map(SubscriptionPlan.fromJson)
+        .toList();
+  }
+}
+
+class SubscriptionPlan {
+  const SubscriptionPlan({
+    required this.code,
+    required this.nameAr,
+    required this.durationDays,
+    required this.priceLabel,
+    required this.features,
+  });
+
+  final String code;
+  final String nameAr;
+  final int durationDays;
+  final String priceLabel;
+  final List<String> features;
+
+  factory SubscriptionPlan.fromJson(Map<String, dynamic> json) {
+    final features = json['features'];
+    return SubscriptionPlan(
+      code: json['code']?.toString() ?? '',
+      nameAr: json['nameAr']?.toString() ?? json['name']?.toString() ?? '',
+      durationDays: (json['durationDays'] as num?)?.toInt() ?? 0,
+      priceLabel: json['priceLabel']?.toString() ?? '',
+      features: features is List
+          ? features.map((e) => e.toString()).toList()
+          : const [],
+    );
+  }
 }

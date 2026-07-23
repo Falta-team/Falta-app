@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:falta_app/core/theme/app_colors.dart';
 import 'package:falta_app/features/courses/domain/entities/courses_entity.dart';
 import 'package:falta_app/features/courses/domain/providers/courses_provider.dart';
 import 'package:falta_app/features/courses/presentation/screens/course_detail_screen.dart';
+import 'package:falta_app/features/courses/presentation/widgets/course_filter_sheet.dart';
 import 'package:falta_app/features/courses/presentation/widgets/instructor_card.dart';
 import 'package:falta_app/features/favorites/domain/providers/favorites_provider.dart';
 import 'package:falta_app/utils/extensions/extensions.dart';
@@ -27,24 +30,85 @@ class InstructorsScreen extends ConsumerStatefulWidget {
 
 class _InstructorsScreenState extends ConsumerState<InstructorsScreen> {
   final _searchCtrl = TextEditingController();
-  String _query = '';
+  Timer? _debounce;
+  CourseSortOption _sort = CourseSortOption.none;
+  CourseDifficultyFilter _difficulty = CourseDifficultyFilter.all;
 
-  List<CoursesEntity> _filter(List<CoursesEntity> courses) {
-    if (_query.isEmpty) return courses;
-    return courses
-        .where(
-          (c) =>
-              c.instructorName.contains(_query) ||
-              c.title.contains(_query) ||
-              c.description.contains(_query),
-        )
-        .toList();
-  }
+  bool get _hasActiveFilter =>
+      _sort != CourseSortOption.none ||
+      _difficulty != CourseDifficultyFilter.all;
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _searchCtrl.dispose();
     super.dispose();
+  }
+
+  void _onSearchChanged(String value, String subjectSlug) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 400), () {
+      final q = value.trim();
+      final notifier =
+          ref.read(coursesBySubjectProvider(subjectSlug).notifier);
+      if (q.isEmpty) {
+        notifier.refresh();
+      } else {
+        notifier.search(q);
+      }
+    });
+  }
+
+  Future<void> _openFilter() async {
+    final result = await showCourseFilterSheet(
+      context,
+      currentSort: _sort,
+      currentDifficulty: _difficulty,
+    );
+    if (result == null || !mounted) return;
+    setState(() {
+      _sort = result.sort;
+      _difficulty = result.difficulty;
+    });
+  }
+
+  List<CoursesEntity> _applyFilters(List<CoursesEntity> courses) {
+    var list = List<CoursesEntity>.from(courses);
+
+    if (_difficulty != CourseDifficultyFilter.all) {
+      final key = switch (_difficulty) {
+        CourseDifficultyFilter.easy => 'easy',
+        CourseDifficultyFilter.medium => 'medium',
+        CourseDifficultyFilter.hard => 'hard',
+        CourseDifficultyFilter.all => '',
+      };
+      list = list.where((c) {
+        final level = c.difficultyLevel.toLowerCase().trim();
+        return level == key ||
+            level.contains(key) ||
+            (_difficulty == CourseDifficultyFilter.easy &&
+                (level.contains('سهل') || level == 'beginner')) ||
+            (_difficulty == CourseDifficultyFilter.medium &&
+                (level.contains('متوسط') || level == 'intermediate')) ||
+            (_difficulty == CourseDifficultyFilter.hard &&
+                (level.contains('صعب') || level == 'advanced'));
+      }).toList();
+    }
+
+    switch (_sort) {
+      case CourseSortOption.none:
+        break;
+      case CourseSortOption.ratingDesc:
+        list.sort((a, b) => b.rating.compareTo(a.rating));
+      case CourseSortOption.priceAsc:
+        list.sort((a, b) => a.price.compareTo(b.price));
+      case CourseSortOption.priceDesc:
+        list.sort((a, b) => b.price.compareTo(a.price));
+      case CourseSortOption.nameAsc:
+        list.sort((a, b) => a.instructorName.compareTo(b.instructorName));
+    }
+
+    return list;
   }
 
   @override
@@ -65,8 +129,6 @@ class _InstructorsScreenState extends ConsumerState<InstructorsScreen> {
       textDirection: TextDirection.rtl,
       child: Scaffold(
         backgroundColor: AppColors.backgroundAppColor,
-
-        // ── AppBar ──────────────────────────────────────────────────────────
         appBar: AppBar(
           backgroundColor: AppColors.white,
           elevation: 0,
@@ -94,35 +156,44 @@ class _InstructorsScreenState extends ConsumerState<InstructorsScreen> {
             ),
           ],
         ),
-
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             16.hs,
-
-            // ── Search Bar ─────────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 children: [
-                  // Filter icon
-                  Container(
-                    width: 46,
-                    height: 46,
-                    decoration: BoxDecoration(
-                      color: AppColors.white,
+                  Material(
+                    color: _hasActiveFilter
+                        ? AppColors.primary.withValues(alpha: 0.12)
+                        : AppColors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    child: InkWell(
+                      onTap: _openFilter,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child: const Icon(
-                      Icons.tune_rounded,
-                      color: AppColors.textSecondaryLight,
-                      size: 22,
+                      child: Container(
+                        width: 46,
+                        height: 46,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: _hasActiveFilter
+                                ? AppColors.primary
+                                : AppColors.border,
+                          ),
+                        ),
+                        child: Icon(
+                          Icons.tune_rounded,
+                          color: _hasActiveFilter
+                              ? AppColors.primary
+                              : AppColors.textSecondaryLight,
+                          size: 22,
+                        ),
+                      ),
                     ),
                   ),
                   12.ws,
-
-                  // Search field
                   Expanded(
                     child: Container(
                       height: 46,
@@ -134,7 +205,7 @@ class _InstructorsScreenState extends ConsumerState<InstructorsScreen> {
                       child: TextField(
                         controller: _searchCtrl,
                         textDirection: TextDirection.rtl,
-                        onChanged: (v) => setState(() => _query = v),
+                        onChanged: (v) => _onSearchChanged(v, subjectSlug),
                         style: const TextStyle(
                           fontSize: 14,
                           fontFamily: 'Cairo',
@@ -163,10 +234,7 @@ class _InstructorsScreenState extends ConsumerState<InstructorsScreen> {
                 ],
               ),
             ),
-
             16.hs,
-
-            // ── Section title ──────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
@@ -178,10 +246,7 @@ class _InstructorsScreenState extends ConsumerState<InstructorsScreen> {
                 ),
               ),
             ),
-
             12.hs,
-
-            // ── Grid ───────────────────────────────────────────────────────
             Expanded(
               child: coursesAsync.when(
                 loading: () => const Center(
@@ -220,7 +285,7 @@ class _InstructorsScreenState extends ConsumerState<InstructorsScreen> {
                   ),
                 ),
                 data: (courses) {
-                  final filtered = _filter(courses);
+                  final filtered = _applyFilters(courses);
                   if (filtered.isEmpty) {
                     return const Center(
                       child: Text(
@@ -247,9 +312,6 @@ class _InstructorsScreenState extends ConsumerState<InstructorsScreen> {
                       final favoritesAsync = ref.watch(favoritesListProvider);
                       final favNotifier =
                           ref.read(favoritesListProvider.notifier);
-                      // InstructorCard keeps its original Map-based API
-                      // and layout untouched — we just feed it real
-                      // course/instructor data instead of the mock list.
                       final instructorMap = <String, dynamic>{
                         'fullName': course.instructorName,
                         'desc': course.description,

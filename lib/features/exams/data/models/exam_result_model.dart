@@ -29,6 +29,10 @@ class ExamResultModel {
       Map<String, dynamic> json, {
         required List<ExamQuestionEntity> answeredQuestions,
       }) {
+    final attempt = json['attempt'] is Map<String, dynamic>
+        ? json['attempt'] as Map<String, dynamic>
+        : const <String, dynamic>{};
+
     final questionsJson = json['questions'] as List<dynamic>? ?? const [];
 
     final mergedQuestions = questionsJson.isNotEmpty
@@ -39,12 +43,15 @@ class ExamResultModel {
 
     final total = (json['totalQuestions'] as num?)?.toInt() ??
         (json['total'] as num?)?.toInt() ??
+        (attempt['totalQuestions'] as num?)?.toInt() ??
         mergedQuestions.length;
     final score = (json['score'] as num?)?.toInt() ??
         (json['correctAnswers'] as num?)?.toInt() ??
+        (attempt['score'] as num?)?.toInt() ??
         mergedQuestions.where((q) => q.isCorrect).length;
     final message = json['message'] as String? ??
         json['performanceBadge'] as String? ??
+        attempt['completionStatus']?.toString() ??
         _defaultMessage(score, total);
 
     return ExamResultEntity(
@@ -52,7 +59,9 @@ class ExamResultModel {
       total: total,
       message: message,
       questions: mergedQuestions,
-      attemptId: json['attemptId']?.toString(),
+      attemptId: json['attemptId']?.toString() ??
+          attempt['id']?.toString() ??
+          attempt['attemptId']?.toString(),
     );
   }
 

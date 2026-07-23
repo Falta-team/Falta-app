@@ -40,18 +40,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void _submit(BuildContext context) {
     if (!_formKey.currentState!.validate()) return;
 
-    final nameParts = _nameController.text.trim().split(' ');
+    final nameParts = _nameController.text.trim().split(RegExp(r'\s+'));
     final firstName = nameParts.isNotEmpty ? nameParts.first : '';
-    final lastName  = nameParts.length > 1
+    final lastName = nameParts.length > 1
         ? nameParts.sublist(1).join(' ')
-        : '';
+        : firstName;
 
     context.read<AuthBloc>().add(
       RegisterEvent(
-        phoneNumber:    PhoneFormatter.toApiFormat(_phoneController.text.trim()),
-        firstName:      firstName,
-        lastName:       lastName,
-        password:       _passwordController.text,
+        phoneNumber: PhoneFormatter.toApiFormat(_phoneController.text.trim()),
+        firstName: firstName,
+        lastName: lastName,
+        password: _passwordController.text,
         academicBranch: _branchApiValue(selectedBranch),
       ),
     );
@@ -187,6 +187,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           }
                           if (v.length < 8) {
                             return 'كلمة المرور يجب أن تكون 8 أحرف على الأقل';
+                          }
+                          final hasLetter = RegExp(r'[A-Za-z\u0600-\u06FF]')
+                              .hasMatch(v);
+                          final hasDigit = RegExp(r'\d').hasMatch(v);
+                          if (!hasLetter || !hasDigit) {
+                            return 'كلمة المرور يجب أن تحتوي على حروف وأرقام';
                           }
                           return null;
                         },

@@ -5,6 +5,7 @@ import 'package:falta_app/features/courses/domain/entities/video_entity.dart';
 import 'package:falta_app/features/courses/domain/providers/courses_provider.dart';
 import 'package:falta_app/features/courses/presentation/widgets/course_comments_tab.dart';
 import 'package:falta_app/features/courses/presentation/widgets/course_fullscreen_player.dart';
+import 'package:falta_app/features/courses/presentation/widgets/course_materials_tab.dart';
 import 'package:falta_app/features/courses/presentation/widgets/course_video_header.dart';
 import 'package:falta_app/features/courses/presentation/widgets/course_videos_tab.dart';
 import 'package:falta_app/features/favorites/domain/providers/favorites_provider.dart';
@@ -56,7 +57,7 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _loadProgress();
   }
 
@@ -479,6 +480,7 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
                   ),
                   tabs: const [
                     Tab(text: 'الفيديوهات'),
+                    Tab(text: 'المواد'),
                     Tab(text: 'التعليقات'),
                   ],
                 ),
@@ -497,6 +499,13 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen>
                         onRetry: () =>
                             ref.invalidate(courseVideosProvider(widget
                                 .courseId)),
+                      ),
+                      CourseMaterialsTab(
+                        materialsAsync:
+                            ref.watch(courseMaterialsProvider(widget.courseId)),
+                        onRetry: () => ref.invalidate(
+                          courseMaterialsProvider(widget.courseId),
+                        ),
                       ),
                       CourseCommentsTab(
                         videoId: _currentVideo?.id,

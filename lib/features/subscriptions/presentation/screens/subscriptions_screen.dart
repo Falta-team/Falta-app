@@ -21,6 +21,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
 
   SubscriptionStatus? _status;
   List<Map<String, dynamic>> _history = const [];
+  List<SubscriptionPlan> _plans = const [];
   bool _loading = true;
   bool _activating = false;
   String? _error;
@@ -46,13 +47,18 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
       final status = await _api.getStatus();
       await SharedPrefController().setSubscriptionActive(status.active);
       List<Map<String, dynamic>> history = const [];
+      List<SubscriptionPlan> plans = const [];
       try {
         history = await _api.getHistory();
+      } catch (_) {}
+      try {
+        plans = await _api.getPlans();
       } catch (_) {}
       if (!mounted) return;
       setState(() {
         _status = status;
         _history = history;
+        _plans = plans;
         _loading = false;
       });
     } catch (e) {
@@ -124,6 +130,62 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                     const SizedBox(height: 12),
                   ],
                   _StatusCard(status: _status),
+                  if (_plans.isNotEmpty) ...[
+                    const SizedBox(height: 20),
+                    Text(
+                      'الباقات المتاحة',
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.titleDark,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    ..._plans.map((plan) {
+                      return Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: AppColors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              plan.nameAr,
+                              style: GoogleFonts.inter(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 15,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${plan.priceLabel} · ${plan.durationDays} يوم',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                            if (plan.features.isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              ...plan.features.map(
+                                (f) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 2),
+                                  child: Text(
+                                    '• $f',
+                                    style: GoogleFonts.cairo(fontSize: 13),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      );
+                    }),
+                  ],
                   const SizedBox(height: 20),
                   Text(
                     'تفعيل بطاقة',

@@ -1,9 +1,13 @@
+import 'dart:io';
+
 import 'package:falta_app/core/theme/app_colors.dart';
 import 'package:falta_app/features/exams/presentation/widgets/exam_app_bar.dart';
 import 'package:falta_app/features/profile/data/repositories/profile_repository_impl.dart';
+import 'package:falta_app/features/profile/data/sources/profile_local_data_source.dart';
 import 'package:falta_app/features/profile/domain/entities/profile_entity.dart';
 import 'package:falta_app/features/profile/domain/usecases/get_profile.dart';
 import 'package:falta_app/features/profile/domain/usecases/update_profile.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -28,6 +32,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   ProfileEntity? _profile;
   bool _saving = false;
+  bool _uploadingPhoto = false;
 
   @override
   void initState() {
@@ -52,21 +57,67 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     });
   }
 
+  Future<void> _pickAndUploadPhoto() async {
+    if (_uploadingPhoto) return;
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      allowMultiple: false,
+    );
+    final path = result?.files.single.path;
+    if (path == null || path.isEmpty) return;
+
+    setState(() => _uploadingPhoto = true);
+    try {
+      final updated = await _repository.uploadProfilePhoto(File(path));
+      if (!mounted) return;
+      setState(() {
+        _profile = updated;
+        _uploadingPhoto = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تم تحديث الصورة')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _uploadingPhoto = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
   Future<void> _save() async {
     final profile = _profile;
     if (profile == null || _saving) return;
     setState(() => _saving = true);
-    await _updateProfile(
-      fullName: _nameCtrl.text.trim(),
-      countryCode: profile.countryCode,
-      phone: _phoneCtrl.text.trim(),
-    );
-    if (!mounted) return;
-    setState(() => _saving = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('تم حفظ التعديلات')),
-    );
-    Navigator.of(context).pop();
+    try {
+      await _updateProfile(
+        fullName: _nameCtrl.text.trim(),
+        countryCode: profile.countryCode,
+        phone: _phoneCtrl.text.trim(),
+      );
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تم حفظ التعديلات')),
+      );
+      Navigator.of(context).pop();
+    } on ProfileApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message), backgroundColor: AppColors.error),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error),
+      );
+    }
   }
 
   @override
@@ -89,35 +140,52 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   Center(
                     child: Column(
                       children: [
-                        Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            CircleAvatar(
-                              radius: 39,
-                              backgroundColor: AppColors.bgLight,
-                              child: const Icon(
-                                Icons.person,
-                                size: 40,
-                                color: AppColors.primary,
+                        GestureDetector(
+                          onTap: _uploadingPhoto ? null : _pickAndUploadPhoto,
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              CircleAvatar(
+                                radius: 39,
+                                backgroundColor: AppColors.bgLight,
+                                backgroundImage: profile.avatarUrl.isNotEmpty
+                                    ? NetworkImage(profile.avatarUrl)
+                                    : null,
+                                child: _uploadingPhoto
+                                    ? const SizedBox(
+                                        width: 28,
+                                        height: 28,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: AppColors.primary,
+                                        ),
+                                      )
+                                    : (profile.avatarUrl.isNotEmpty
+                                        ? null
+                                        : const Icon(
+                                            Icons.person,
+                                            size: 40,
+                                            color: AppColors.primary,
+                                          )),
                               ),
-                            ),
-                            PositionedDirectional(
-                              end: -4,
-                              bottom: -4,
-                              child: Container(
-                                width: 28,
-                                height: 28,
-                                decoration: const BoxDecoration(
-                                  color: AppColors.white,
-                                  shape: BoxShape.circle,
-                                ),
-                                padding: const EdgeInsets.all(3),
-                                child: SvgPicture.asset(
-                                  'assets/icons/profile/ic_edit.svg',
+                              PositionedDirectional(
+                                end: -4,
+                                bottom: -4,
+                                child: Container(
+                                  width: 28,
+                                  height: 28,
+                                  decoration: const BoxDecoration(
+                                    color: AppColors.white,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  padding: const EdgeInsets.all(3),
+                                  child: SvgPicture.asset(
+                                    'assets/icons/profile/ic_edit.svg',
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                         const SizedBox(height: 10),
                         Text(

@@ -46,14 +46,18 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       var newUser =
           result.data!.user.isNotEmpty ? result.data!.user : _pref.toUserMap();
 
-      if (newUser['role'] == null) {
+      // Always re-fetch profile so a role change on the server is applied.
+      try {
         final profile = await _api.getProfile(
           accessToken: result.data!.accessToken,
         );
         if (profile.success && profile.data != null) {
-          newUser = {...newUser, ...profile.data!};
+          newUser = {
+            ...newUser,
+            ..._unwrapUserMap(profile.data!),
+          };
         }
-      }
+      } catch (_) {}
 
       await _pref.saveSession(
         accessToken:  result.data!.accessToken,
@@ -82,38 +86,48 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
 
     if (result.success && result.data != null) {
-      // ✅ احفظ كل البيانات مرة وحدة
-      await _pref.saveSession(
-        accessToken:  result.data!.accessToken,
-        refreshToken: result.data!.refreshToken,
-        user:         result.data!.user,
-      );
-      // لو الـ login ما رجّع role، نجيبها من البروفايل
-      if (result.data!.user['role'] == null) {
+      final user = Map<String, dynamic>.from(result.data!.user);
+      if ((user['phoneNumber']?.toString() ?? '').isEmpty) {
+        user['phoneNumber'] = event.phoneNumber;
+      }
+
+      // Always refresh profile after login — role in JWT/login payload can
+      // be stale vs the users table; profile is the source of truth.
+      try {
         final profile = await _api.getProfile(
           accessToken: result.data!.accessToken,
         );
         if (profile.success && profile.data != null) {
-          final data = profile.data!;
-          final user = Map<String, dynamic>.from(result.data!.user)
-            ..addAll(data);
-          await _pref.saveSession(
-            accessToken:  result.data!.accessToken,
-            refreshToken: result.data!.refreshToken,
-            user:         user,
-          );
-          emit(LoginSuccessState(AuthTokens(
-            accessToken:  result.data!.accessToken,
-            refreshToken: result.data!.refreshToken,
-            user:         user,
-          )));
-          return;
+          final data = _unwrapUserMap(profile.data!);
+          user.addAll(data);
+          if ((user['phoneNumber']?.toString() ?? '').isEmpty) {
+            user['phoneNumber'] = event.phoneNumber;
+          }
         }
-      }
-      emit(LoginSuccessState(result.data!));
+      } catch (_) {}
+
+      await _pref.saveSession(
+        accessToken:  result.data!.accessToken,
+        refreshToken: result.data!.refreshToken,
+        user:         user,
+      );
+      emit(LoginSuccessState(AuthTokens(
+        accessToken:  result.data!.accessToken,
+        refreshToken: result.data!.refreshToken,
+        user:         user,
+      )));
     } else {
       emit(LoginFailureState(result.error ?? 'حدث خطأ غير متوقع'));
     }
+  }
+
+  /// Profile responses may be flat user fields or `{ user: {...} }`.
+  Map<String, dynamic> _unwrapUserMap(Map<String, dynamic> raw) {
+    final nested = raw['user'];
+    if (nested is Map<String, dynamic>) {
+      return Map<String, dynamic>.from(nested);
+    }
+    return Map<String, dynamic>.from(raw);
   }
 
   // ── Register ─────────────────────────────────────────────────────────────

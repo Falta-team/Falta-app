@@ -64,30 +64,42 @@ class SharedPrefController {
     await _prefs.setString(PrefKey.phoneNumber.name,    user['phoneNumber']    as String? ?? '');
     await _prefs.setString(PrefKey.academicBranch.name, user['academicBranch'] as String? ?? '');
     await _prefs.setString(PrefKey.profilePhotoUrl.name,user['profilePhotoUrl']as String? ?? '');
-    final phone = user['phoneNumber'] as String? ??
+    final phone = user['phoneNumber']?.toString() ??
         _prefs.getString(PrefKey.phoneNumber.name) ??
         '';
-    final roleRaw = user['role'] as String? ??
-        user['userRole'] as String? ??
-        user['type'] as String? ??
+    // Only trust explicit role fields — never `type` (unrelated API fields).
+    final roleRaw = user['role']?.toString() ??
+        user['userRole']?.toString() ??
         '';
-    var role = AppRole.fromString(roleRaw);
-    if (!role.isAdmin && _isDemoPhone(phone, kDemoAdminPhones)) {
-      role = AppRole.admin;
-    } else if (!role.isInstructorSide &&
-        _isDemoPhone(phone, kDemoInstructorPhones)) {
-      role = AppRole.instructor;
-    }
+    // Prefer API role. Demo phones are a last resort only when role is missing.
+    final role = roleRaw.trim().isNotEmpty
+        ? AppRole.fromString(roleRaw)
+        : (_isDemoPhone(phone, kDemoAdminPhones)
+            ? AppRole.admin
+            : (_isDemoPhone(phone, kDemoInstructorPhones)
+                ? AppRole.instructor
+                : AppRole.student));
     await _prefs.setString(PrefKey.role.name, role.apiValue);
   }
 
+  /// Normalize Palestinian mobiles to national digits without leading 0 / 970.
+  static String normalizePhoneDigits(String phone) {
+    var digits = phone.replaceAll(RegExp(r'\D'), '');
+    if (digits.startsWith('970')) {
+      digits = digits.substring(3);
+    }
+    if (digits.startsWith('0')) {
+      digits = digits.substring(1);
+    }
+    return digits;
+  }
+
   static bool _isDemoPhone(String phone, Set<String> candidates) {
-    final digits = phone.replaceAll(RegExp(r'\D'), '');
+    final normalized = normalizePhoneDigits(phone);
+    // Require a full mobile length so empty / partial inputs never match.
+    if (normalized.length < 9) return false;
     for (final candidate in candidates) {
-      final c = candidate.replaceAll(RegExp(r'\D'), '');
-      if (digits == c || digits.endsWith(c) || c.endsWith(digits)) {
-        return true;
-      }
+      if (normalizePhoneDigits(candidate) == normalized) return true;
     }
     return false;
   }
@@ -113,6 +125,9 @@ class SharedPrefController {
   String get profilePhotoUrl => _prefs.getString(PrefKey.profilePhotoUrl.name)??  '';
   AppRole get role =>
       AppRole.fromString(_prefs.getString(PrefKey.role.name));
+
+  Future<void> setProfilePhotoUrl(String url) =>
+      _prefs.setString(PrefKey.profilePhotoUrl.name, url);
 
   // ── Notification settings toggle (defaults to on) ────────────────────────
   bool get notificationsEnabled =>

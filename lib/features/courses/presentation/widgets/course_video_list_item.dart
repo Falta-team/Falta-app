@@ -10,6 +10,8 @@ class CourseVideoListItem extends StatelessWidget {
   final bool isPlaying;
   final bool isCurrentlyPlayingAudio;
   final VoidCallback onTap;
+  final bool isFavorite;
+  final VoidCallback? onFavoriteTap;
 
   const CourseVideoListItem({
     super.key,
@@ -17,9 +19,10 @@ class CourseVideoListItem extends StatelessWidget {
     required this.isPlaying,
     required this.isCurrentlyPlayingAudio,
     required this.onTap,
+    this.isFavorite = false,
+    this.onFavoriteTap,
   });
 
-  // "180" seconds → "3:00"
   static String _formatDuration(int totalSeconds) {
     final minutes = totalSeconds ~/ 60;
     final seconds = totalSeconds % 60;
@@ -35,7 +38,6 @@ class CourseVideoListItem extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Green play button (highlighted while active)
             Container(
               width: 40,
               height: 40,
@@ -54,8 +56,6 @@ class CourseVideoListItem extends StatelessWidget {
               ),
             ),
             14.ws,
-
-            // Lesson info
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -90,6 +90,15 @@ class CourseVideoListItem extends StatelessWidget {
                 ],
               ),
             ),
+            if (onFavoriteTap != null)
+              IconButton(
+                onPressed: onFavoriteTap,
+                icon: Icon(
+                  isFavorite ? Icons.bookmark : Icons.bookmark_border,
+                  color:
+                      isFavorite ? AppColors.primary : AppColors.textSecondary,
+                ),
+              ),
           ],
         ),
       ),

@@ -9,9 +9,25 @@ import 'package:http/http.dart' as http;
 class ExamsRemoteDataSource {
   const ExamsRemoteDataSource();
 
-  // ── GET /exams ──────────────────────────────────────────────────────────
-  Future<dynamic> getExams() async {
-    final uri = Uri.parse(ApiSettings.exams);
+  // ── GET /exams?subject= ────────────────────────────────────────────────
+  Future<dynamic> getExams({String? subject}) async {
+    final uri = subject == null || subject.isEmpty
+        ? Uri.parse(ApiSettings.exams)
+        : ApiSettings.examsQuery(subject: subject);
+    final response = await http.get(uri, headers: ApiSettings.jsonHeaders);
+    return _decode(response);
+  }
+
+  // ── GET /exams/{id} ────────────────────────────────────────────────────
+  Future<dynamic> getExamById(String examId) async {
+    final uri = Uri.parse(ApiSettings.examById(examId));
+    final response = await http.get(uri, headers: ApiSettings.jsonHeaders);
+    return _decode(response);
+  }
+
+  // ── GET /exams/subject/{subject} ───────────────────────────────────────
+  Future<dynamic> getExamsBySubjectPath(String subject) async {
+    final uri = Uri.parse(ApiSettings.examsBySubject(subject));
     final response = await http.get(uri, headers: ApiSettings.jsonHeaders);
     return _decode(response);
   }
@@ -23,6 +39,38 @@ class ExamsRemoteDataSource {
   }) async {
     final uri = Uri.parse(ApiSettings.startExam(examId));
     final response = await http.post(uri, headers: ApiSettings.authHeaders(token));
+    return _decode(response);
+  }
+
+  // ── POST /exams/{attemptId}/answers ────────────────────────────────────
+  Future<dynamic> saveAnswer({
+    required String attemptId,
+    required String questionId,
+    required String answer,
+    required int timeTakenSeconds,
+    required String token,
+  }) async {
+    final uri = Uri.parse(ApiSettings.saveExamAnswer(attemptId));
+    final response = await http.post(
+      uri,
+      headers: ApiSettings.authHeaders(token),
+      body: jsonEncode({
+        'questionId': questionId,
+        'answer': answer,
+        'timeTaken': timeTakenSeconds,
+      }),
+    );
+    return _decode(response);
+  }
+
+  // ── GET /exams/{id}/results/{attemptId} ────────────────────────────────
+  Future<dynamic> getExamResult({
+    required String examId,
+    required String attemptId,
+    required String token,
+  }) async {
+    final uri = Uri.parse(ApiSettings.examResult(examId, attemptId));
+    final response = await http.get(uri, headers: ApiSettings.authHeaders(token));
     return _decode(response);
   }
 

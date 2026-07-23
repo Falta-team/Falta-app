@@ -1,13 +1,12 @@
 import 'package:falta_app/core/theme/app_colors.dart';
 import 'package:falta_app/features/courses/domain/entities/video_entity.dart';
+import 'package:falta_app/features/favorites/domain/providers/favorites_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'course_video_list_item.dart';
 
-/// "الفيديوهات" tab: loading / error / empty / list states, delegating
-/// each row to [CourseVideoListItem].
-class CourseVideosTab extends StatelessWidget {
+class CourseVideosTab extends ConsumerWidget {
   final AsyncValue<List<VideoEntity>> videosAsync;
   final String? currentVideoId;
   final bool isCurrentVideoPlaying;
@@ -24,7 +23,7 @@ class CourseVideosTab extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return videosAsync.when(
       loading: () => const Center(
         child: CircularProgressIndicator(color: AppColors.primary),
@@ -71,17 +70,39 @@ class CourseVideosTab extends StatelessWidget {
           );
         }
 
+        final favNotifier = ref.read(favoritesListProvider.notifier);
+        ref.watch(favoritesListProvider);
+
         return ListView.builder(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           itemCount: videos.length,
           itemBuilder: (context, i) {
             final video = videos[i];
             final isPlaying = currentVideoId == video.id;
+            final isSaved = favNotifier.isFavorited('video', video.id);
 
             return CourseVideoListItem(
               video: video,
               isPlaying: isPlaying,
               isCurrentlyPlayingAudio: isPlaying && isCurrentVideoPlaying,
+              isFavorite: isSaved,
+              onFavoriteTap: () async {
+                try {
+                  await favNotifier.toggle(
+                    itemType: 'video',
+                    itemId: video.id,
+                    title: video.title,
+                    subtitle: '',
+                    image: '',
+                    meta: video.courseId,
+                  );
+                } catch (e) {
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(e.toString())),
+                  );
+                }
+              },
               onTap: () => onVideoTap(video),
             );
           },

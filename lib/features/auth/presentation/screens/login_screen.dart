@@ -1,3 +1,4 @@
+import 'package:falta_app/core/auth/app_role.dart';
 import 'package:falta_app/core/navigation/role_home.dart';
 import 'package:falta_app/features/auth/domain/bloc/auth_bloc.dart';
 import 'package:falta_app/features/auth/presentation/screens/forget_password_screen.dart';
@@ -48,7 +49,12 @@ class _LoginScreenState extends State<LoginScreen> {
         listener: (context, state) {
           // ── Success → Home ───────────────────────────────────────────────
           if (state is LoginSuccessState) {
-            goToRoleHome(context);
+            goToRoleHome(
+              context,
+              role: AppRole.fromString(
+                state.tokens.user['role']?.toString(),
+              ),
+            );
           }
           // ── Failure → SnackBar ────────────────────────────────────────────
           if (state is LoginFailureState) {
